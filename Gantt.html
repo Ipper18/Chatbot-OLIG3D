@@ -62,10 +62,11 @@
         // Dane są oparte na 2-tygodniowych sprintach kończących się w dniu kamienia milowego.
         const allRows = [
             // --- M1 ---
-            ['M1', 'Kamień Milowy 1: Architektura i Prototyp', 'M1', new Date(2025, 9, 27), new Date(2025, 10, 9), null, 0, null],
-            ['M1.1', 'Architektura, repo, VM, baza, GDrive/Sheets', 'M1', new Date(2025, 9, 27), new Date(2025, 10, 2), null, 0, null],
-            ['M1.2', 'Prosty czat (UI) → webhook n8n (echo)', 'M1', new Date(2025, 10, 3), new Date(2025, 10, 9), null, 0, 'M1.1'],
-            ['M1.3', 'Schemat danych, import 1000 rekordów', 'M1', new Date(2025, 10, 3), new Date(2025, 10, 9), null, 0, 'M1.1'],
+            // Zmienione wartości procentowe dla demonstracji:
+            ['M1', 'Kamień Milowy 1: Architektura i Prototyp', 'M1', new Date(2025, 9, 27), new Date(2025, 10, 9), null, 50, null],
+            ['M1.1', 'Architektura, repo, VM, baza, GDrive/Sheets', 'M1', new Date(2025, 9, 27), new Date(2025, 10, 2), null, 100, null],
+            ['M1.2', 'Prosty czat (UI) → webhook n8n (echo)', 'M1', new Date(2025, 10, 3), new Date(2025, 10, 9), null, 50, 'M1.1'],
+            ['M1.3', 'Schemat danych, import 1000 rekordów', 'M1', new Date(2025, 10, 3), new Date(2025, 10, 9), null, 25, 'M1.1'],
             
             // --- M2 ---
             ['M2', 'Kamień Milowy 2: Analiza 3D i Wycena', 'M2', new Date(2025, 10, 10), new Date(2025, 10, 23), null, 0, 'M1'],
@@ -129,7 +130,7 @@
                 gantt: {
                     trackHeight: 40,
                     barCornerRadius: 4,
-                    percentEnabled: false,
+                    percentEnabled: true, // Włączone, aby pokazać postęp na paskach M
                     defaultStartDate: new Date(2025, 9, 21),
                     criticalPathEnabled: false, // Wyłączone dla widoku ogólnego
                     barLabelStyle: { fontName: 'Inter', fontSize: 12, color: '#1f2937' },
@@ -169,7 +170,7 @@
                 gantt: {
                     trackHeight: 40,
                     barCornerRadius: 4,
-                    percentEnabled: false,
+                    percentEnabled: true, // Włączone, aby pokazać postęp na paskach zadań
                     defaultStartDate: new Date(2025, 9, 21),
                     criticalPathEnabled: true, // Włączone dla widoku szczegółowego
                     criticalPathStyle: {
@@ -191,6 +192,15 @@
             var chart = new google.visualization.Gantt(document.getElementById('gantt_chart_tasks'));
             chart.draw(data, options);
         }
+
+        // Dodanie listenera 'resize', aby wykresy były responsywne
+        // Używamy 'clearTimeout' aby uniknąć zbyt częstego przerysowywania
+        var resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            // Przerysuj wykresy po 250ms od ostatniej zmiany rozmiaru okna
+            resizeTimer = setTimeout(drawCharts, 250); 
+        });
     </script>
 </head>
 <body class="bg-gray-900 font-sans antialiased text-gray-100">
@@ -234,4 +244,8 @@
 
 </body>
 </html>
+
+
+
+
 

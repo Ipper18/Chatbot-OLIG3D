@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmonogram Projektu MVP</title>
+    
+    <!-- Ładowanie Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Ładowanie Google Charts -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    
+    <style>
+        /* Ustawienie domyślnej czcionki Inter dla całej strony */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Stylizacja dymków (tooltip) wykresu Gantta */
+        .google-visualization-tooltip {
+            font-family: 'Inter', sans-serif !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 8px !important;
+            background-color: #ffffff !important;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+            padding: 12px !important;
+        }
+        .google-visualization-tooltip-item {
+            padding: 4px 0 !important;
+        }
+        .google-visualization-tooltip-item > span:first-child {
+            font-weight: 600 !important;
+            color: #1f2937 !important;
+        }
+        .google-visualization-tooltip-item > span:last-child {
+            font-weight: 400 !important;
+            color: #374151 !important;
+        }
+    </style>
+
+    <script type="text/javascript">
+        // Ładowanie pakietu 'gantt' z Google Charts
+        google.charts.load('current', {'packages':['gantt'], 'language': 'pl'});
+        google.charts.setOnLoadCallback(drawCharts);
+
+        // --- Globalne definicje danych i kolorów ---
+
+        // Definiowanie niestandardowej palety kolorów dla kamieni milowych
+        const allColors = [
+            '#6366f1', // M1 (Indigo)
+            '#8b5cf6', // M2 (Violet)
+            '#ec4899', // M3 (Pink)
+            '#10b981', // M4 (Emerald)
+            '#f59e0b', // M5 (Amber)
+            '#3b82f6', // M6 (Blue)
+            '#ef4444'  // M7 (Red)
+        ];
+
+        // Dodawanie danych (zadań) do wykresu
+        // Dane są oparte na 2-tygodniowych sprintach kończących się w dniu kamienia milowego.
+        const allRows = [
+            // --- M1 ---
+            ['M1', 'Kamień Milowy 1: Architektura i Prototyp', 'M1', new Date(2025, 9, 27), new Date(2025, 10, 9), null, 0, null],
+            ['M1.1', 'Architektura, repo, VM, baza, GDrive/Sheets', 'M1', new Date(2025, 9, 27), new Date(2025, 10, 2), null, 0, null],
+            ['M1.2', 'Prosty czat (UI) → webhook n8n (echo)', 'M1', new Date(2025, 10, 3), new Date(2025, 10, 9), null, 0, 'M1.1'],
+            ['M1.3', 'Schemat danych, import 1000 rekordów', 'M1', new Date(2025, 10, 3), new Date(2025, 10, 9), null, 0, 'M1.1'],
+            
+            // --- M2 ---
+            ['M2', 'Kamień Milowy 2: Analiza 3D i Wycena', 'M2', new Date(2025, 10, 10), new Date(2025, 10, 23), null, 0, 'M1'],
+            ['M2.1', 'Mikroserwis analizy STL/OBJ (objętość, etc.)', 'M2', new Date(2025, 10, 10), new Date(2025, 10, 16), null, 0, 'M1.1'],
+            ['M2.2', 'MVP wyceny formułowej + reguły doboru', 'M2', new Date(2025, 10, 17), new Date(2025, 10, 23), null, 0, 'M2.1'],
+            ['M2.3', 'Integracja Allegro API (ceny materiałów)', 'M2', new Date(2025, 10, 17), new Date(2025, 10, 23), null, 0, 'M1.1'],
+
+            // --- M3 ---
+            ['M3', 'Kamień Milowy 3: Slicer i UI', 'M3', new Date(2025, 10, 24), new Date(2025, 11, 7), null, 0, 'M2'],
+            ['M3.1', 'Headless slicer w kontenerze (1 profil)', 'M3', new Date(2025, 10, 24), new Date(2025, 11, 1), null, 0, 'M2.1'],
+            ['M3.2', 'UI: Formularz + upload + wynik', 'M3', new Date(2025, 10, 24), new Date(2025, 11, 7), null, 0, 'M2.2'],
+            ['M3.3', 'Zbieranie logów, dashboard metryk', 'M3', new Date(2025, 11, 1), new Date(2025, 11, 7), null, 0, 'M3.2'],
+
+            // --- M4 ---
+            ['M4', 'Kamień Milowy 4: Pierwsze Modele ML', 'M4', new Date(2025, 11, 8), new Date(2025, 11, 21), null, 0, 'M3'],
+            ['M4.1', 'Model ML (ranking, parametry)', 'M4', new Date(2025, 11, 8), new Date(2025, 11, 14), null, 0, 'M3.3'],
+            ['M4.2', 'Walidacja offline (MAPE/MAE)', 'M4', new Date(2025, 11, 15), new Date(2025, 11, 21), null, 0, 'M4.1'],
+            ['M4.3', 'Mechanizm "confidence & pytania"', 'M4', new Date(2025, 11, 15), new Date(2025, 11, 21), null, 0, 'M4.1'],
+
+            // --- M5 ---
+            ['M5', 'Kamień Milowy 5: Automatyzacja ML', 'M5', new Date(2025, 11, 22), new Date(2026, 0, 4), null, 0, 'M4'],
+            ['M5.1', 'Cykliczne uczenie (n8n nocą), fine-tuning', 'M5', new Date(2025, 11, 22), new Date(2025, 11, 28), null, 0, 'M4.2'],
+            ['M5.2', 'Rozszerzenie profili slicera (2-3 drukarki)', 'M5', new Date(2025, 11, 29), new Date(2026, 0, 4), null, 0, 'M3.1'],
+            ['M5.3', 'Hardening Allegro API (tokeny, fallback)', 'M5', new Date(2025, 11, 29), new Date(2026, 0, 4), null, 0, 'M2.3'],
+
+            // --- M6 ---
+            ['M6', 'Kamień Milowy 6: Testy E2E i Finalizacja', 'M6', new Date(2026, 0, 5), new Date(2026, 0, 18), null, 0, 'M5'],
+            ['M6.1', 'Testy end-to-end (10-20 zleceń), raport', 'M6', new Date(2026, 0, 5), new Date(2026, 0, 18), null, 0, 'M5.1'],
+            ['M6.2', 'UI polishing, eksport PDF / profilu', 'M6', new Date(2026, 0, 12), new Date(2026, 0, 18), null, 0, 'M3.2'],
+
+            // --- M7 ---
+            ['M7', 'Kamień Milowy 7: Finał MVP', 'M7', new Date(2026, 0, 19), new Date(2026, 0, 26), null, 0, 'M6'],
+            ['M7.1', 'Demo + dokumentacja tech/użytk.', 'M7', new Date(2026, 0, 19), new Date(2026, 0, 26), null, 0, 'M6.1'],
+            ['M7.2', 'Porównanie baseline vs. ML, plan rozwoju', 'M7', new Date(2026, 0, 19), new Date(2026, 0, 26), null, 0, 'M6.1']
+        ];
+        
+        // --- Główna funkcja rysująca ---
+        function drawCharts() {
+            drawMilestoneChart();
+            drawTaskChart();
+        }
+
+        // --- Wykres 1: Kamienie Milowe ---
+        function drawMilestoneChart() {
+            var data = new google.visualization.DataTable();
+            data.addColumn('string', 'Task ID');
+            data.addColumn('string', 'Task Name');
+            data.addColumn('string', 'Resource (Milestone)');
+            data.addColumn('date', 'Start Date');
+            data.addColumn('date', 'End Date');
+            data.addColumn('number', 'Duration (ms)');
+            data.addColumn('number', 'Percent Complete');
+            data.addColumn('string', 'Dependencies');
+
+            // Filtrowanie tylko głównych kamieni milowych (M1, M2, ...)
+            var milestoneRows = allRows.filter(r => r[0].match(/^M\d$/));
+            data.addRows(milestoneRows);
+
+            var options = {
+                height: (milestoneRows.length * 41) + 50, 
+                gantt: {
+                    trackHeight: 40,
+                    barCornerRadius: 4,
+                    percentEnabled: false,
+                    defaultStartDate: new Date(2025, 9, 21),
+                    criticalPathEnabled: false, // Wyłączone dla widoku ogólnego
+                    barLabelStyle: { fontName: 'Inter', fontSize: 12, color: '#1f2937' },
+                    labelStyle: { fontName: 'Inter', fontSize: 13, color: '#111827' },
+                    palette: allColors
+                },
+                timeline: {
+                    rowLabelStyle: { fontName: 'Inter', fontSize: 13, color: '#111827' },
+                    barLabelStyle: { fontName: 'Inter', fontSize: 12, color: '#1f2937' }
+                },
+                tooltip: { isHtml: true, textStyle: { fontName: 'Inter', fontSize: 13 } },
+                backgroundColor: { fill: '#ffffff' }
+            };
+
+            var chart = new google.visualization.Gantt(document.getElementById('gantt_chart_milestones'));
+            chart.draw(data, options);
+        }
+
+        // --- Wykres 2: Szczegółowe Zadania ---
+        function drawTaskChart() {
+            var data = new google.visualization.DataTable();
+            data.addColumn('string', 'Task ID');
+            data.addColumn('string', 'Task Name');
+            data.addColumn('string', 'Resource (Milestone)');
+            data.addColumn('date', 'Start Date');
+            data.addColumn('date', 'End Date');
+            data.addColumn('number', 'Duration (ms)');
+            data.addColumn('number', 'Percent Complete');
+            data.addColumn('string', 'Dependencies');
+
+            // Filtrowanie tylko zadań podrzędnych (M1.1, M1.2, ...)
+            var taskRows = allRows.filter(r => r[0].includes('.'));
+            data.addRows(taskRows);
+
+            var options = {
+                height: (taskRows.length * 41) + 50, 
+                gantt: {
+                    trackHeight: 40,
+                    barCornerRadius: 4,
+                    percentEnabled: false,
+                    defaultStartDate: new Date(2025, 9, 21),
+                    criticalPathEnabled: true, // Włączone dla widoku szczegółowego
+                    criticalPathStyle: {
+                        stroke: '#dc2626',
+                        strokeWidth: 2
+                    },
+                    barLabelStyle: { fontName: 'Inter', fontSize: 12, color: '#1f2937' },
+                    labelStyle: { fontName: 'Inter', fontSize: 13, color: '#111827' },
+                    palette: allColors
+                },
+                timeline: {
+                    rowLabelStyle: { fontName: 'Inter', fontSize: 13, color: '#111827' },
+                    barLabelStyle: { fontName: 'Inter', fontSize: 12, color: '#1f2937' }
+                },
+                tooltip: { isHtml: true, textStyle: { fontName: 'Inter', fontSize: 13 } },
+                backgroundColor: { fill: '#ffffff' }
+            };
+
+            var chart = new google.visualization.Gantt(document.getElementById('gantt_chart_tasks'));
+            chart.draw(data, options);
+        }
+    </script>
+</head>
+<body class="bg-gray-900 font-sans antialiased text-gray-100">
+
+    <div class="max-w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-12">
+        
+        <!-- Sekcja: Kamienie Milowe -->
+        <div>
+            <header class="mb-6">
+                <h1 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                    Kamienie Milowe Projektu
+                </h1>
+                <p class="mt-2 text-lg text-gray-400">
+                    Ogólny widok głównych faz projektu MVP.
+                </p>
+            </header>
+            <div id="gantt_chart_milestones_container" class="bg-white rounded-xl shadow-2xl p-4 overflow-x-auto">
+                <div id="gantt_chart_milestones"></div>
+            </div>
+        </div>
+
+        <!-- Sekcja: Szczegółowy Harmonogram Zadań -->
+        <div>
+            <header class="mb-6">
+                <h1 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                    Szczegółowy Harmonogram Zadań
+                </h1>
+                <p class="mt-2 text-lg text-gray-400">
+                    Interaktywny podział zadań i zależności (włączona ścieżka krytyczna).
+                </p>
+                <p class="mt-1 text-sm text-gray-500">
+                    Plan dla zespołu 2-osobowego (4-8h/tyg). Najedź na paski, aby zobaczyć szczegóły.
+                </p>
+            </header>
+            <div id="gantt_chart_tasks_container" class="bg-white rounded-xl shadow-2xl p-4 overflow-x-auto">
+                <div id="gantt_chart_tasks"></div>
+            </div>
+        </div>
+        
+    </div>
+
+</body>
+</html>
+

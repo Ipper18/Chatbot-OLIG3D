@@ -1,23 +1,25 @@
 <!DOCTYPE html>
 <html lang="pl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Harmonogram Projektu MVP</title>
-    
+
     <!-- Ładowanie Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- Ładowanie Google Charts -->
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-    
+
     <style>
         /* Ustawienie domyślnej czcionki Inter dla całej strony */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
         body {
             font-family: 'Inter', sans-serif;
         }
-        
+
         /* Stylizacja dymków (tooltip) wykresu Gantta */
         .google-visualization-tooltip {
             font-family: 'Inter', sans-serif !important;
@@ -27,14 +29,17 @@
             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
             padding: 12px !important;
         }
+
         .google-visualization-tooltip-item {
             padding: 4px 0 !important;
         }
-        .google-visualization-tooltip-item > span:first-child {
+
+        .google-visualization-tooltip-item>span:first-child {
             font-weight: 600 !important;
             color: #1f2937 !important;
         }
-        .google-visualization-tooltip-item > span:last-child {
+
+        .google-visualization-tooltip-item>span:last-child {
             font-weight: 400 !important;
             color: #374151 !important;
         }
@@ -42,7 +47,7 @@
 
     <script type="text/javascript">
         // Ładowanie pakietu 'gantt' z Google Charts
-        google.charts.load('current', {'packages':['gantt'], 'language': 'pl'});
+        google.charts.load('current', { 'packages': ['gantt'], 'language': 'pl' });
         google.charts.setOnLoadCallback(drawCharts);
 
         // --- Globalne definicje danych i kolorów ---
@@ -67,7 +72,7 @@
             ['M1.1', 'Architektura, repo, VM, baza, GDrive/Sheets', 'M1', new Date(2025, 9, 27), new Date(2025, 10, 2), null, 100, null],
             ['M1.2', 'Prosty czat (UI) → webhook n8n (echo)', 'M1', new Date(2025, 10, 3), new Date(2025, 10, 9), null, 50, 'M1.1'],
             ['M1.3', 'Schemat danych, import 1000 rekordów', 'M1', new Date(2025, 10, 3), new Date(2025, 10, 9), null, 25, 'M1.1'],
-            
+
             // --- M2 ---
             ['M2', 'Kamień Milowy 2: Analiza 3D i Wycena', 'M2', new Date(2025, 10, 10), new Date(2025, 10, 23), null, 0, 'M1'],
             ['M2.1', 'Mikroserwis analizy STL/OBJ (objętość, etc.)', 'M2', new Date(2025, 10, 10), new Date(2025, 10, 16), null, 0, 'M1.1'],
@@ -93,7 +98,7 @@
 
             // --- M6 ---
             ['M6', 'Kamień Milowy 6: Testy E2E i Finalizacja', 'M6', new Date(2026, 0, 5), new Date(2026, 0, 18), null, 0, 'M5'],
-            ['M6.1', 'Testy end-to-end (10-20 zleceń), raport', 'M6', new Date(2026, 0, 5), new Date(2026, 0, 18), null, 0, 'M4.2'],
+            ['M6.1', 'Testy end-to-end (10-20 zleceń), raport', 'M6', new Date(2026, 0, 5), new Date(2026, 0, 18), null, 0, 'M5.2,M5.3'],
             ['M6.2', 'UI polishing, eksport PDF / profilu', 'M6', new Date(2026, 0, 12), new Date(2026, 0, 18), null, 0, 'M3.2'],
 
             // --- M7 ---
@@ -101,7 +106,7 @@
             ['M7.1', 'Demo + dokumentacja tech/użytk.', 'M7', new Date(2026, 0, 19), new Date(2026, 0, 26), null, 0, 'M6.1'],
             ['M7.2', 'Porównanie baseline vs. ML, plan rozwoju', 'M7', new Date(2026, 0, 19), new Date(2026, 0, 26), null, 0, 'M6.1']
         ];
-        
+
         // --- Główna funkcja rysująca ---
         function drawCharts() {
             drawMilestoneChart();
@@ -125,7 +130,7 @@
             data.addRows(milestoneRows);
 
             var options = {
-                height: (milestoneRows.length * 41) + 50, 
+                height: (milestoneRows.length * 41) + 50,
                 gantt: {
                     trackHeight: 40,
                     barCornerRadius: 4,
@@ -165,7 +170,7 @@
             data.addRows(taskRows);
 
             var options = {
-                height: (taskRows.length * 41) + 50, 
+                height: (taskRows.length * 41) + 50,
                 gantt: {
                     trackHeight: 40,
                     barCornerRadius: 4,
@@ -195,17 +200,18 @@
         // Dodanie listenera 'resize', aby wykresy były responsywne
         // Używamy 'clearTimeout' aby uniknąć zbyt częstego przerysowywania
         var resizeTimer;
-        window.addEventListener('resize', function() {
+        window.addEventListener('resize', function () {
             clearTimeout(resizeTimer);
             // Przerysuj wykresy po 250ms od ostatniej zmiany rozmiaru okna
-            resizeTimer = setTimeout(drawCharts, 250); 
+            resizeTimer = setTimeout(drawCharts, 250);
         });
     </script>
 </head>
+
 <body class="bg-gray-900 font-sans antialiased text-gray-100">
 
     <div class="max-w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-12">
-        
+
         <!-- Sekcja: Kamienie Milowe -->
         <div>
             <header class="mb-6">
@@ -238,14 +244,9 @@
                 <div id="gantt_chart_tasks"></div>
             </div>
         </div>
-        
+
     </div>
 
 </body>
+
 </html>
-
-
-
-
-
-

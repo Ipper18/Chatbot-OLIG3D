@@ -1,22 +1,13 @@
 {
-    "name": "olig3d-chat",
+    "name": "olig3d-web",
     "private": true,
+    "type": "module",
     "scripts": {
-        "dev": "next dev",
-        "build": "next build",
-        "start": "next start -p 3000",
-        "lint": "next lint"
+        "start": "node server.js"
     },
     "dependencies": {
-        "next": "14.x",
-        "react": "18.x",
-        "react-dom": "18.x"
-    },
-    "devDependencies": {
-        "typescript": "^5.6.0",
-        "@types/react": "^18.2.0",
-        "@types/node": "^20.0.0",
-        "eslint": "^9.0.0",
-        "eslint-config-next": "14.x"
+        "dotenv": "^16.4.5",
+        "express": "^4.19.2",
+        "node-fetch": "^3.3.2"
     }
 }

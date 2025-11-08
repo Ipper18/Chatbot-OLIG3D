@@ -1,30 +1,36 @@
-import express from 'express';
-import fetch from 'node-fetch';
+const express = require('express');
+const axios = require('axios');
+const path = require('path');
 
 const app = express();
+const PORT = process.env.PORT || 3000;
+const N8N_URL = process.env.N8N_WEBHOOK_URL;
+
 app.use(express.json());
 
-// healthcheck dla Coolify
-app.get("/hc", (req, res) => res.status(200).send("OK"));
+// zdrowie dla Coolify
+app.get('/hc', (_req, res) => res.status(200).send('OK'));
 
-// prosty endpoint, który proxuje do n8n webhook
+// statyki (serwuj /web/public)
+app.use(express.static(path.join(__dirname, 'public')));
+
+// root → index.html (żeby nie było "Cannot GET /")
+app.get('/', (_req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// proxy do n8n
 app.post('/api/chat', async (req, res) => {
     try {
-        const url = process.env.N8N_WEBHOOK_URL; // ustawisz w Coolify
-        const r = await fetch(url, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(req.body || {})
-        });
-        const data = await r.text(); // echo z n8n
-        res.status(r.status).send(data);
+        if (!N8N_URL) return res.status(500).json({ error: 'Missing N8N_WEBHOOK_URL' });
+        const r = await axios.post(N8N_URL, req.body, { timeout: 15000 });
+        res.status(r.status).json(r.data);
     } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: 'n8n proxy failed' });
+        const status = e.response?.status || 500;
+        res.status(status).json({ error: e.message, detail: e.response?.data });
     }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(process.env.PORT || 3000, () => {
-    console.log("up on", process.env.PORT || 3000);
+app.listen(PORT, () => {
+    console.log(`OLIG3D listening on :${PORT}`);
 });

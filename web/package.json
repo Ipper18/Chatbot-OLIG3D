@@ -1,13 +1,11 @@
 {
-    "name": "olig3d",
-    "version": "0.1.0",
-    "type": "module",
-    "main": "server.js",
+    "name": "olig3d-web",
+    "private": true,
     "scripts": {
         "start": "node server.js"
     },
     "dependencies": {
-        "express": "^4.19.2",
-        "node-fetch": "^3.3.2"
+        "axios": "^1.7.5",
+        "express": "^4.19.2"
     }
 }

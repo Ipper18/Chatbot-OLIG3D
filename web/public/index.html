@@ -4,63 +4,34 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>OLIG3D Chat</title>
-    <style>
-        body {
-            font-family: system-ui, Segoe UI, Roboto, Arial;
-            padding: 24px;
-            max-width: 760px;
-            margin: auto
-        }
-
-        .row {
-            display: flex;
-            gap: 8px
-        }
-
-        input,
-        button,
-        textarea {
-            font-size: 16px;
-            padding: 10px
-        }
-
-        #log {
-            margin-top: 16px;
-            border: 1px solid #ddd;
-            padding: 12px;
-            min-height: 160px;
-            white-space: pre-wrap;
-            background: #fafafa
-        }
-    </style>
+    <title>OLIG3D — minimalny frontend</title>
 </head>
 
 <body>
-    <h1>OLIG3D – chat (echo)</h1>
-    <div class="row">
-        <input id="msg" placeholder="Wpisz wiadomość…" style="flex:1" />
-        <button id="send">Wyślij</button>
-    </div>
-    <div id="log"></div>
+    <h1>OLIG3D backend działa ✅</h1>
+    <p>Healthcheck: <a href="/hc" target="_blank">/hc</a></p>
+
+    <h2>Test rozmowy → n8n</h2>
+    <input id="msg" placeholder="Wpisz wiadomość..." />
+    <button onclick="send()">Wyślij</button>
+    <pre id="out"></pre>
+
     <script>
-        const log = (t) => (document.getElementById("log").textContent += t + "\n");
-        document.getElementById("send").onclick = async () => {
-            const msg = document.getElementById("msg").value.trim();
-            if (!msg) return;
-            log("> " + msg);
+        async function send() {
+            const out = document.getElementById('out');
+            out.textContent = 'Wysyłam...';
             try {
-                const r = await fetch("/api/chat", {
-                    method: "POST",
-                    headers: { "content-type": "application/json" },
-                    body: JSON.stringify({ message: msg })
+                const r = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: document.getElementById('msg').value || 'echo' })
                 });
                 const data = await r.json();
-                log("< " + JSON.stringify(data));
+                out.textContent = JSON.stringify(data, null, 2);
             } catch (e) {
-                log("ERR " + e);
+                out.textContent = 'Błąd: ' + e;
             }
-        };
+        }
     </script>
 </body>
 

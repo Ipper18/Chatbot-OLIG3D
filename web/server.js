@@ -5,7 +5,7 @@ const app = express();
 app.use(express.json());
 
 // healthcheck dla Coolify
-app.get('/hc', (req, res) => res.status(200).send('OK'));
+app.get("/hc", (req, res) => res.status(200).send("OK"));
 
 // prosty endpoint, który proxuje do n8n webhook
 app.post('/api/chat', async (req, res) => {
@@ -25,6 +25,6 @@ app.post('/api/chat', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`OLIG3D listening on ${PORT}`);
+app.listen(process.env.PORT || 3000, () => {
+    console.log("up on", process.env.PORT || 3000);
 });

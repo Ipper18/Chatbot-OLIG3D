@@ -64,6 +64,11 @@ app.get('/metrics', async (_req, res) => {
     }
 });
 
+app.get('/quote', (_req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'quote.html'));
+});
+
+
 app.listen(PORT, () => {
     console.log(`OLIG3D listening on :${PORT}`);
 });

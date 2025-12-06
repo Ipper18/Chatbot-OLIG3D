@@ -4,50 +4,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sprawdź Wycenę</title>
+    <title>Wycena Druku 3D</title>
     <style>
+        :root {
+            --primary: #007bff;
+            --bg: #f4f6f9;
+            --text: #333;
+            --card-bg: #ffffff;
+            --success-border: #28a745;
+            --error-bg: #fff5f5;
+            --error-text: #c53030;
+            --error-border: #fc8181;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 20px;
-            background-color: #f4f4f9;
-            color: #333;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            padding-top: 50px;
+            margin: 0;
         }
 
         .container {
-            background: white;
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 500px;
             padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         }
 
         h1 {
             margin-top: 0;
+            font-size: 24px;
+            text-align: center;
+            color: #2d3748;
         }
 
-        .input-group {
+        /* Input i przycisk */
+        .search-box {
             display: flex;
             gap: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
 
         input {
-            flex-grow: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
             font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--primary);
         }
 
         button {
-            padding: 10px 20px;
-            background-color: #007bff;
+            padding: 12px 24px;
+            background-color: var(--primary);
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
+            font-weight: 600;
             font-size: 16px;
+            transition: background-color 0.2s;
         }
 
         button:hover {
@@ -55,44 +81,87 @@
         }
 
         button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
+            background-color: #cbd5e0;
+            cursor: wait;
         }
 
-        /* Stylizacja tabeli wyników */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        th,
-        td {
-            text-align: left;
-            padding: 12px;
-            border-bottom: 1px solid #eee;
-        }
-
-        th {
-            background-color: #fafafa;
-            color: #555;
-            width: 30%;
-        }
-
-        .error {
-            color: #d9534f;
-            background: #fdf7f7;
-            padding: 10px;
-            border-radius: 4px;
-            margin-top: 20px;
+        /* Sekcja WYNIKU (Karta wyceny) */
+        .quote-card {
             display: none;
+            /* Domyślnie ukryte */
+            animation: fadeIn 0.3s ease-in;
         }
 
-        .json-raw {
+        .total-price-section {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        .total-label {
+            font-size: 14px;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .total-value {
+            font-size: 36px;
+            font-weight: 800;
+            color: #2d3748;
+            margin: 5px 0;
+        }
+
+        .details-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px dashed #e2e8f0;
+            font-size: 15px;
+        }
+
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .detail-item span.label {
+            color: #718096;
+        }
+
+        .detail-item span.value {
+            font-weight: 500;
+        }
+
+        /* Sekcja BŁĘDU */
+        .error-box {
+            display: none;
+            background-color: var(--error-bg);
+            color: var(--error-text);
+            border: 1px solid var(--error-border);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
             margin-top: 20px;
-            font-size: 12px;
-            color: #999;
-            white-space: pre-wrap;
+            font-weight: 500;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
@@ -100,93 +169,123 @@
 <body>
 
     <div class="container">
-        <h1>Wycena Zlecenia</h1>
-        <div class="input-group">
-            <input type="text" id="jobInput" placeholder="Wpisz ID (np. JOB-0001)" value="JOB-0001">
-            <button onclick="getQuote()" id="btnSubmit">Policz wycenę</button>
+        <h1>Wycena Druku 3D</h1>
+
+        <div class="search-box">
+            <input type="text" id="jobInput" placeholder="Np. JOB-0002" value="JOB-0002">
+            <button onclick="fetchQuote()" id="btnSubmit">Szukaj</button>
         </div>
 
-        <div id="errorMsg" class="error"></div>
+        <div id="errorBox" class="error-box"></div>
 
-        <div id="resultContainer" style="display:none;">
-            <table id="resultTable">
-            </table>
+        <div id="quoteResult" class="quote-card">
+            <div class="total-price-section">
+                <div class="total-label">Całkowity koszt</div>
+                <div class="total-value" id="displayTotal">0.00 PLN</div>
+                <div style="font-size: 12px; color: #a0aec0;" id="displayJobId">JOB-XXX</div>
+            </div>
+
+            <ul class="details-list">
+                <li class="detail-item">
+                    <span class="label">⏳ Czas druku</span>
+                    <span class="value" id="costTime">0.00</span>
+                </li>
+                <li class="detail-item">
+                    <span class="label">🧵 Materiał (Filament)</span>
+                    <span class="value" id="costMaterial">0.00</span>
+                </li>
+                <li class="detail-item">
+                    <span class="label">⚡ Energia</span>
+                    <span class="value" id="costEnergy">0.00</span>
+                </li>
+                <li class="detail-item">
+                    <span class="label">📈 Marża</span>
+                    <span class="value" id="costMargin">0.00</span>
+                </li>
+            </ul>
         </div>
     </div>
 
     <script>
-        async function getQuote() {
+        async function fetchQuote() {
             const jobId = document.getElementById('jobInput').value.trim();
-            const errorDiv = document.getElementById('errorMsg');
-            const resultContainer = document.getElementById('resultContainer');
-            const table = document.getElementById('resultTable');
             const btn = document.getElementById('btnSubmit');
+            const errorBox = document.getElementById('errorBox');
+            const resultCard = document.getElementById('quoteResult');
 
             // Reset widoku
-            errorDiv.style.display = 'none';
-            resultContainer.style.display = 'none';
-            table.innerHTML = '';
-            errorDiv.innerText = '';
+            errorBox.style.display = 'none';
+            resultCard.style.display = 'none';
 
             if (!jobId) {
-                showError("Proszę wpisać ID zlecenia.");
+                showError("Proszę wpisać numer zlecenia.");
                 return;
             }
 
             try {
                 btn.disabled = true;
-                btn.innerText = "Ładowanie...";
+                btn.innerText = "...";
 
-                // Wywołanie API
+                // Strzał do Twojego API
                 const response = await fetch('/api/quote/' + jobId);
-
-                // Obsługa błędów HTTP (np. 404, 500)
-                if (!response.ok) {
-                    throw new Error(`Błąd serwera: ${response.status} ${response.statusText}`);
-                }
-
                 const data = await response.json();
 
-                // Renderowanie tabeli
-                renderTable(data);
-                resultContainer.style.display = 'block';
+                // LOGIKA OBSŁUGI ODPOWIEDZI (zgodna z Twoim schematem)
+                if (data.success === false) {
+                    handleError(data, jobId);
+                } else {
+                    renderQuote(data);
+                }
 
             } catch (err) {
-                showError("Wystąpił błąd: " + err.message);
                 console.error(err);
+                showError("Błąd połączenia z serwerem.");
             } finally {
                 btn.disabled = false;
-                btn.innerText = "Policz wycenę";
+                btn.innerText = "Szukaj";
             }
         }
 
-        function renderTable(data) {
-            const table = document.getElementById('resultTable');
+        function renderQuote(data) {
+            const currency = data.currency || "PLN";
+            const breakdown = data.breakdown || {};
 
-            // Iterujemy po kluczach obiektu JSON
-            for (const [key, value] of Object.entries(data)) {
-                const row = table.insertRow();
-                const cellKey = row.insertCell(0);
-                const cellValue = row.insertCell(1);
+            // Wypełnianie danych w HTML
+            document.getElementById('displayTotal').innerText = formatMoney(data.total, currency);
+            document.getElementById('displayJobId').innerText = data.jobExtId || data.jobId;
 
-                // Formatowanie klucza (np. camelCase na tekst)
-                cellKey.innerHTML = `<strong>${key}</strong>`;
+            // Breakdown costs
+            // Używamy optional chaining (?.), żeby nie wywaliło błędu jak czegoś brakuje
+            document.getElementById('costTime').innerText = formatMoney(breakdown.timeCost, currency);
+            document.getElementById('costMaterial').innerText = formatMoney(breakdown.materialCost, currency);
+            document.getElementById('costEnergy').innerText = formatMoney(breakdown.energyCost, currency);
+            document.getElementById('costMargin').innerText = formatMoney(breakdown.margin, currency);
 
-                // Obsługa obiektów zagnieżdżonych (wyświetlamy jako JSON string dla czytelności)
-                if (typeof value === 'object' && value !== null) {
-                    cellValue.innerText = JSON.stringify(value, null, 2);
-                    cellValue.style.fontFamily = 'monospace';
-                    cellValue.style.whiteSpace = 'pre';
-                } else {
-                    cellValue.innerText = value;
-                }
+            // Pokaż kartę
+            document.getElementById('quoteResult').style.display = 'block';
+        }
+
+        function handleError(data, jobId) {
+            // Logika błędów ze screena
+            if (data.error === 'JOB_NOT_FOUND') {
+                showError(`Nie znaleziono zlecenia o numerze ${jobId}.`);
+            } else if (data.error === 'FILAMENT_PRICE_MISSING') {
+                showError('Brak zdefiniowanej ceny filamentu dla tego materiału.');
+            } else {
+                // Jeśli jest message od backendu, pokaż go, w przeciwnym razie ogólny błąd
+                showError(data.message || 'Wystąpił nieoczekiwany błąd podczas liczenia wyceny.');
             }
         }
 
         function showError(msg) {
-            const errorDiv = document.getElementById('errorMsg');
-            errorDiv.innerText = msg;
-            errorDiv.style.display = 'block';
+            const errorBox = document.getElementById('errorBox');
+            errorBox.innerText = msg;
+            errorBox.style.display = 'block';
+        }
+
+        function formatMoney(amount, currency) {
+            if (amount === undefined || amount === null) return "0.00 " + currency;
+            return parseFloat(amount).toFixed(2) + " " + currency;
         }
     </script>
 

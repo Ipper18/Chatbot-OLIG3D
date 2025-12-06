@@ -41,15 +41,27 @@ app.post('/api/chat', async (req, res) => {
 
 app.get('/api/quote/:extId', async (req, res) => {
     try {
-        const r = await axios.post(process.env.N8N_QUOTE_WEBHOOK_URL, {
-            extId: req.params.extId,
-        }, { timeout: 15000 });
+        const r = await axios.post(
+            process.env.N8N_QUOTE_WEBHOOK_URL,
+            { extId: req.params.extId },
+            {
+                timeout: 15000,
+                // ważne: nie rzucaj wyjątku dla 4xx, chcemy sami obsłużyć
+                validateStatus: () => true,
+            },
+        );
 
-        res.json(r.data); // { quoteId, total, breakdown... }
+        const data = r.data || {};
+        const status = data.httpStatus || r.status || 200;
+
+        res.status(status).json(data);
     } catch (e) {
+        console.error('QUOTE ERROR', e.message);
         const status = e.response?.status || 500;
+
         res.status(status).json({
-            error: 'quote_failed',
+            success: false,
+            error: 'QUOTE_PROXY_ERROR',
             detail: e.response?.data || e.message,
         });
     }

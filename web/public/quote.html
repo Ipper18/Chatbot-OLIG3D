@@ -226,12 +226,28 @@
                 btn.disabled = true;
                 btn.innerText = "...";
 
-                // Strzał do Twojego API
                 const response = await fetch('/api/quote/' + jobId);
-                const data = await response.json();
+                let data = await response.json();
 
-                // LOGIKA OBSŁUGI ODPOWIEDZI (zgodna z Twoim schematem)
-                if (data.success === false) {
+                // --- DEBUG: Zobacz w konsoli (F12) co dokładnie przyszło ---
+                console.log("Surowe dane z API:", data);
+
+                // POPRAWKA: Jeśli n8n zwrócił tablicę, bierzemy pierwszy element
+                if (Array.isArray(data)) {
+                    console.log("Wykryto tablicę, biorę pierwszy element.");
+                    data = data[0];
+                }
+
+                // Jeśli po wyjęciu z tablicy data jest pusta/null
+                if (!data) {
+                    showError("Otrzymano pustą odpowiedź z serwera.");
+                    return;
+                }
+
+                // LOGIKA SUKCESU / BŁĘDU
+                // Uwaga: Czasem n8n zwraca success wewnątrz json, a czasem go brakuje.
+                // Zakładamy, że jeśli jest pole 'error' to jest błąd.
+                if (data.success === false || data.error) {
                     handleError(data, jobId);
                 } else {
                     renderQuote(data);
@@ -239,7 +255,7 @@
 
             } catch (err) {
                 console.error(err);
-                showError("Błąd połączenia z serwerem.");
+                showError("Błąd połączenia z serwerem lub błąd danych.");
             } finally {
                 btn.disabled = false;
                 btn.innerText = "Szukaj";
@@ -248,32 +264,31 @@
 
         function renderQuote(data) {
             const currency = data.currency || "PLN";
+            // Zabezpieczenie: jeśli breakdown nie istnieje, stwórz pusty obiekt
             const breakdown = data.breakdown || {};
 
-            // Wypełnianie danych w HTML
             document.getElementById('displayTotal').innerText = formatMoney(data.total, currency);
-            document.getElementById('displayJobId').innerText = data.jobExtId || data.jobId;
+
+            // Wyświetlanie ID - szukamy jobExtId lub jobId
+            const displayId = data.jobExtId || data.jobId || "Brak ID";
+            document.getElementById('displayJobId').innerText = displayId;
 
             // Breakdown costs
-            // Używamy optional chaining (?.), żeby nie wywaliło błędu jak czegoś brakuje
             document.getElementById('costTime').innerText = formatMoney(breakdown.timeCost, currency);
             document.getElementById('costMaterial').innerText = formatMoney(breakdown.materialCost, currency);
             document.getElementById('costEnergy').innerText = formatMoney(breakdown.energyCost, currency);
             document.getElementById('costMargin').innerText = formatMoney(breakdown.margin, currency);
 
-            // Pokaż kartę
             document.getElementById('quoteResult').style.display = 'block';
         }
 
         function handleError(data, jobId) {
-            // Logika błędów ze screena
             if (data.error === 'JOB_NOT_FOUND') {
                 showError(`Nie znaleziono zlecenia o numerze ${jobId}.`);
             } else if (data.error === 'FILAMENT_PRICE_MISSING') {
                 showError('Brak zdefiniowanej ceny filamentu dla tego materiału.');
             } else {
-                // Jeśli jest message od backendu, pokaż go, w przeciwnym razie ogólny błąd
-                showError(data.message || 'Wystąpił nieoczekiwany błąd podczas liczenia wyceny.');
+                showError(data.message || 'Wystąpił nieoczekiwany błąd (zobacz konsolę).');
             }
         }
 
@@ -284,8 +299,10 @@
         }
 
         function formatMoney(amount, currency) {
-            if (amount === undefined || amount === null) return "0.00 " + currency;
-            return parseFloat(amount).toFixed(2) + " " + currency;
+            // Konwersja na liczbę, bo czasem przychodzi string "88.13"
+            const num = parseFloat(amount);
+            if (isNaN(num)) return "0.00 " + currency;
+            return num.toFixed(2) + " " + currency;
         }
     </script>
 

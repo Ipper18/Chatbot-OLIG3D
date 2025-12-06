@@ -27,29 +27,31 @@ app.get('/', (_req, res) => {
 // proxy do n8n
 app.post('/api/chat', async (req, res) => {
     try {
-        if (!N8N_CHAT_URL) return res.status(500).json({ error: 'Missing N8N_WEBHOOK_URL' });
-        const r = await axios.post(N8N_CHAT_URL, req.body, { timeout: 15000 });
-        res.status(r.status).json(r.data);
+        const r = await axios.post(process.env.N8N_CHAT_WEBHOOK_URL, {
+            message: req.body.message,
+            sessionId: req.body.sessionId || null,
+        }, { timeout: 10000 });
+
+        res.json(r.data); // { reply: "...", ... }
     } catch (e) {
-        const status = e.response?.status || 500;
-        res.status(status).json({ error: e.message, detail: e.response?.data });
+        console.error(e.message);
+        res.status(500).json({ success: false, error: 'chat_failed' });
     }
 });
 
 app.get('/api/quote/:extId', async (req, res) => {
     try {
-        if (!N8N_QUOTE_URL) {
-            return res.status(500).json({ error: 'Missing N8N_QUOTE_WEBHOOK_URL' });
-        }
-        const r = await axios.post(
-            N8N_QUOTE_URL,
-            { extId: req.params.extId },
-            { timeout: 15000 },
-        );
-        res.status(r.status).json(r.data);
+        const r = await axios.post(process.env.N8N_QUOTE_WEBHOOK_URL, {
+            extId: req.params.extId,
+        }, { timeout: 15000 });
+
+        res.json(r.data); // { quoteId, total, breakdown... }
     } catch (e) {
         const status = e.response?.status || 500;
-        res.status(status).json({ error: e.message, detail: e.response?.data });
+        res.status(status).json({
+            error: 'quote_failed',
+            detail: e.response?.data || e.message,
+        });
     }
 });
 

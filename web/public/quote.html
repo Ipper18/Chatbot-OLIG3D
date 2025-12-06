@@ -74,7 +74,6 @@
             cursor: wait;
         }
 
-        /* KARTA WYNIKU */
         .quote-card {
             display: none;
             animation: fadeIn 0.3s ease-in;
@@ -104,7 +103,6 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            /* Wyrównanie do środka */
             padding: 12px 0;
             border-bottom: 1px dashed #e2e8f0;
         }
@@ -113,7 +111,6 @@
             border-bottom: none;
         }
 
-        /* Lewa strona listy (Etykieta + Opis) */
         .detail-left {
             display: flex;
             flex-direction: column;
@@ -130,7 +127,6 @@
             margin-top: 2px;
         }
 
-        /* Prawa strona listy (Cena) */
         .detail-value {
             font-weight: 600;
             font-size: 15px;
@@ -167,7 +163,7 @@
         <h1>Wycena Druku 3D</h1>
 
         <div class="search-box">
-            <input type="text" id="jobInput" placeholder="Np. JOB-0001" value="JOB-0001">
+            <input type="text" id="jobInput" placeholder="Np. JOB-0012" value="JOB-0012">
             <button onclick="fetchQuote()" id="btnSubmit">Szukaj</button>
         </div>
 
@@ -233,23 +229,21 @@
 
             try {
                 btn.disabled = true;
-                btn.innerText = "...";
+                btn.innerText = "Pobieranie...";
 
                 const response = await fetch('/api/quote/' + jobId);
                 let data = await response.json();
 
-                // 1. Obsługa tablicy (gdyby n8n zwrócił listę)
+                // Obsługa tablicy z n8n (częsty przypadek)
                 if (Array.isArray(data)) { data = data[0]; }
 
-                // 2. Debugowanie - zobacz w konsoli (F12), co dokładnie przyszło
-                console.log("Dane z API:", data);
+                console.log("Dane z API:", data); // Debug
 
                 if (!data) {
                     showError("Pusta odpowiedź z serwera.");
                     return;
                 }
 
-                // 3. Sprawdzanie błędów
                 if (data.success === false || data.error) {
                     handleError(data, jobId);
                 } else {
@@ -266,56 +260,64 @@
         }
 
         function renderQuote(data) {
-            const currency = "PLN";
-            // Zabezpieczenie: jeśli breakdown nie istnieje, stwórz pusty obiekt
-            const br = data.breakdown || {};
+            const currency = data.currency || "PLN";
+
+            // 1. Koszty są w 'breakdown'
+            const costs = data.breakdown || {};
+
+            // 2. Szczegóły są w głównym obiekcie (według Twojego JSON-a)
+            const timeDetails = data.time;
+            const matDetails = data.material;
+            const energyDetails = data.energy;
+            const metaDetails = data.meta; // Tutaj jest marża
 
             // --- GŁÓWNA SUMA ---
             document.getElementById('displayTotal').innerText = formatMoney(data.total, currency);
             document.getElementById('displayJobId').innerText = data.jobExtId || data.jobId || "Brak ID";
 
-            // --- 1. CZAS ---
-            // Najpierw wpisujemy CENĘ (zawsze, jeśli jest dostępna)
-            document.getElementById('costTime').innerText = formatMoney(br.timeCost, currency);
+            // --- CZAS ---
+            updateRow('costTime', 'descTime', costs.timeCost, timeDetails, (d) => {
+                return `${d.minutes} min (${d.hhmmss})`;
+            }, currency, "Czas druku");
 
-            // Potem próbujemy uzupełnić OPIS (tylko jeśli są detale)
-            if (br.time) {
-                document.getElementById('descTime').innerText = `${br.time.minutes} min (${br.time.hhmmss})`;
-            } else {
-                document.getElementById('descTime').innerText = "Czas druku";
-            }
+            // --- MATERIAŁ ---
+            updateRow('costMaterial', 'descMaterial', costs.materialCost, matDetails, (d) => {
+                const name = d.material || "Filament";
+                return `${name}, ${d.grams}g`;
+            }, currency, "Zużycie materiału");
 
-            // --- 2. MATERIAŁ ---
-            document.getElementById('costMaterial').innerText = formatMoney(br.materialCost, currency);
+            // --- ENERGIA ---
+            updateRow('costEnergy', 'descEnergy', costs.energyCost, energyDetails, (d) => {
+                // W Twoim JSON jest 'energyPerH', a nie 'ratePerH'
+                const rate = d.energyPerH || d.ratePerH;
+                return `Wg stawki ${rate} ${currency}/h`;
+            }, currency, "Koszt energii");
 
-            if (br.material) {
-                // Sprawdzamy czy mamy nazwę materiału, jak nie to wstawiamy "Filament"
-                const matName = br.material.material || "Filament";
-                document.getElementById('descMaterial').innerText = `${matName}, ${br.material.grams}g`;
-            } else {
-                document.getElementById('descMaterial').innerText = "Zużycie materiału";
-            }
+            // --- MARŻA ---
+            updateRow('costMargin', 'descMargin', costs.margin, metaDetails, (d) => {
+                // W Twoim JSON jest 'marginPercent'
+                return `Narzut ${d.marginPercent}%`;
+            }, currency, "Marża serwisu");
 
-            // --- 3. ENERGIA ---
-            document.getElementById('costEnergy').innerText = formatMoney(br.energyCost, currency);
-
-            if (br.energy && br.energy.ratePerH) {
-                document.getElementById('descEnergy').innerText = `Wg stawki ${br.energy.ratePerH} PLN/h`;
-            } else {
-                document.getElementById('descEnergy').innerText = "Koszt prądu";
-            }
-
-            // --- 4. MARŻA ---
-            document.getElementById('costMargin').innerText = formatMoney(br.margin, currency);
-
-            if (br.marginInfo && br.marginInfo.percent) {
-                document.getElementById('descMargin').innerText = `Narzut ${br.marginInfo.percent}%`;
-            } else {
-                document.getElementById('descMargin').innerText = "Marża serwisu";
-            }
-
-            // Pokaż wynik
             document.getElementById('quoteResult').style.display = 'block';
+        }
+
+        function updateRow(costId, descId, costValue, detailsObj, formatFn, currency, defaultLabel) {
+            // Ustawienie ceny
+            document.getElementById(costId).innerText = formatMoney(costValue, currency);
+
+            const descElement = document.getElementById(descId);
+
+            // Jeśli mamy obiekt ze szczegółami
+            if (detailsObj) {
+                descElement.innerText = formatFn(detailsObj);
+                descElement.style.color = "#718096"; // Szary
+                descElement.style.fontStyle = "normal";
+            } else {
+                // Brak szczegółów
+                descElement.innerText = defaultLabel;
+                descElement.style.color = "#a0aec0";
+            }
         }
 
         function handleError(data, jobId) {
@@ -335,9 +337,7 @@
         }
 
         function formatMoney(amount, currency) {
-            // Jeśli amount jest undefined/null, traktuj jako 0
             const num = parseFloat(amount || 0);
-            if (isNaN(num)) return "0.00 " + currency;
             return num.toFixed(2) + " " + currency;
         }
     </script>

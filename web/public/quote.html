@@ -11,10 +11,10 @@
             --bg: #f4f6f9;
             --text: #333;
             --card-bg: #ffffff;
-            --success-border: #28a745;
             --error-bg: #fff5f5;
             --error-text: #c53030;
             --error-border: #fc8181;
+            --gray-light: #718096;
         }
 
         body {
@@ -43,7 +43,6 @@
             color: #2d3748;
         }
 
-        /* Input i przycisk */
         .search-box {
             display: flex;
             gap: 10px;
@@ -57,11 +56,6 @@
             border-radius: 6px;
             font-size: 16px;
             outline: none;
-            transition: border-color 0.2s;
-        }
-
-        input:focus {
-            border-color: var(--primary);
         }
 
         button {
@@ -73,11 +67,6 @@
             cursor: pointer;
             font-weight: 600;
             font-size: 16px;
-            transition: background-color 0.2s;
-        }
-
-        button:hover {
-            background-color: #0056b3;
         }
 
         button:disabled {
@@ -85,10 +74,9 @@
             cursor: wait;
         }
 
-        /* Sekcja WYNIKU (Karta wyceny) */
+        /* KARTA WYNIKU */
         .quote-card {
             display: none;
-            /* Domyślnie ukryte */
             animation: fadeIn 0.3s ease-in;
         }
 
@@ -97,13 +85,6 @@
             margin-bottom: 20px;
             padding-bottom: 20px;
             border-bottom: 1px solid #edf2f7;
-        }
-
-        .total-label {
-            font-size: 14px;
-            color: #718096;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
         .total-value {
@@ -122,24 +103,39 @@
         .detail-item {
             display: flex;
             justify-content: space-between;
-            padding: 10px 0;
+            align-items: center;
+            /* Wyrównanie do środka */
+            padding: 12px 0;
             border-bottom: 1px dashed #e2e8f0;
-            font-size: 15px;
         }
 
         .detail-item:last-child {
             border-bottom: none;
         }
 
-        .detail-item span.label {
-            color: #718096;
+        /* Lewa strona listy (Etykieta + Opis) */
+        .detail-left {
+            display: flex;
+            flex-direction: column;
         }
 
-        .detail-item span.value {
+        .detail-label {
+            font-size: 15px;
             font-weight: 500;
         }
 
-        /* Sekcja BŁĘDU */
+        .detail-sub {
+            font-size: 12px;
+            color: var(--gray-light);
+            margin-top: 2px;
+        }
+
+        /* Prawa strona listy (Cena) */
+        .detail-value {
+            font-weight: 600;
+            font-size: 15px;
+        }
+
         .error-box {
             display: none;
             background-color: var(--error-bg);
@@ -149,7 +145,6 @@
             border-radius: 8px;
             text-align: center;
             margin-top: 20px;
-            font-weight: 500;
         }
 
         @keyframes fadeIn {
@@ -172,7 +167,7 @@
         <h1>Wycena Druku 3D</h1>
 
         <div class="search-box">
-            <input type="text" id="jobInput" placeholder="Np. JOB-0002" value="JOB-0002">
+            <input type="text" id="jobInput" placeholder="Np. JOB-0001" value="JOB-0001">
             <button onclick="fetchQuote()" id="btnSubmit">Szukaj</button>
         </div>
 
@@ -180,27 +175,42 @@
 
         <div id="quoteResult" class="quote-card">
             <div class="total-price-section">
-                <div class="total-label">Całkowity koszt</div>
+                <div style="font-size: 12px; color: #a0aec0; text-transform: uppercase;">Całkowity koszt</div>
                 <div class="total-value" id="displayTotal">0.00 PLN</div>
                 <div style="font-size: 12px; color: #a0aec0;" id="displayJobId">JOB-XXX</div>
             </div>
 
             <ul class="details-list">
                 <li class="detail-item">
-                    <span class="label">⏳ Czas druku</span>
-                    <span class="value" id="costTime">0.00</span>
+                    <div class="detail-left">
+                        <span class="detail-label">⏳ Czas druku</span>
+                        <span class="detail-sub" id="descTime">--</span>
+                    </div>
+                    <span class="detail-value" id="costTime">0.00</span>
                 </li>
+
                 <li class="detail-item">
-                    <span class="label">🧵 Materiał (Filament)</span>
-                    <span class="value" id="costMaterial">0.00</span>
+                    <div class="detail-left">
+                        <span class="detail-label">🧵 Materiał (Filament)</span>
+                        <span class="detail-sub" id="descMaterial">--</span>
+                    </div>
+                    <span class="detail-value" id="costMaterial">0.00</span>
                 </li>
+
                 <li class="detail-item">
-                    <span class="label">⚡ Energia</span>
-                    <span class="value" id="costEnergy">0.00</span>
+                    <div class="detail-left">
+                        <span class="detail-label">⚡ Energia</span>
+                        <span class="detail-sub" id="descEnergy">--</span>
+                    </div>
+                    <span class="detail-value" id="costEnergy">0.00</span>
                 </li>
+
                 <li class="detail-item">
-                    <span class="label">📈 Marża</span>
-                    <span class="value" id="costMargin">0.00</span>
+                    <div class="detail-left">
+                        <span class="detail-label">📈 Marża</span>
+                        <span class="detail-sub" id="descMargin">--</span>
+                    </div>
+                    <span class="detail-value" id="costMargin">0.00</span>
                 </li>
             </ul>
         </div>
@@ -213,7 +223,6 @@
             const errorBox = document.getElementById('errorBox');
             const resultCard = document.getElementById('quoteResult');
 
-            // Reset widoku
             errorBox.style.display = 'none';
             resultCard.style.display = 'none';
 
@@ -229,24 +238,15 @@
                 const response = await fetch('/api/quote/' + jobId);
                 let data = await response.json();
 
-                // --- DEBUG: Zobacz w konsoli (F12) co dokładnie przyszło ---
-                console.log("Surowe dane z API:", data);
+                // Obsługa przypadku, gdy API zwraca tablicę
+                if (Array.isArray(data)) { data = data[0]; }
 
-                // POPRAWKA: Jeśli n8n zwrócił tablicę, bierzemy pierwszy element
-                if (Array.isArray(data)) {
-                    console.log("Wykryto tablicę, biorę pierwszy element.");
-                    data = data[0];
-                }
-
-                // Jeśli po wyjęciu z tablicy data jest pusta/null
                 if (!data) {
-                    showError("Otrzymano pustą odpowiedź z serwera.");
+                    showError("Pusta odpowiedź z serwera.");
                     return;
                 }
 
-                // LOGIKA SUKCESU / BŁĘDU
-                // Uwaga: Czasem n8n zwraca success wewnątrz json, a czasem go brakuje.
-                // Zakładamy, że jeśli jest pole 'error' to jest błąd.
+                // Sprawdzanie sukcesu
                 if (data.success === false || data.error) {
                     handleError(data, jobId);
                 } else {
@@ -255,7 +255,7 @@
 
             } catch (err) {
                 console.error(err);
-                showError("Błąd połączenia z serwerem lub błąd danych.");
+                showError("Błąd połączenia z serwerem.");
             } finally {
                 btn.disabled = false;
                 btn.innerText = "Szukaj";
@@ -263,32 +263,51 @@
         }
 
         function renderQuote(data) {
-            const currency = data.currency || "PLN";
-            // Zabezpieczenie: jeśli breakdown nie istnieje, stwórz pusty obiekt
-            const breakdown = data.breakdown || {};
+            const currency = "PLN"; // Domyślnie PLN
+            const br = data.breakdown || {}; // Skrót do breakdown
 
+            // --- SEKCJA GŁÓWNA ---
             document.getElementById('displayTotal').innerText = formatMoney(data.total, currency);
+            document.getElementById('displayJobId').innerText = data.jobExtId || data.jobId || "Brak ID";
 
-            // Wyświetlanie ID - szukamy jobExtId lub jobId
-            const displayId = data.jobExtId || data.jobId || "Brak ID";
-            document.getElementById('displayJobId').innerText = displayId;
+            // --- CZAS ---
+            // Przykład: "21 min (35 PLN/h)"
+            if (br.time) {
+                document.getElementById('descTime').innerText = `${br.time.minutes} min (${br.time.hhmmss}) × ${br.time.ratePerH} PLN/h`;
+                document.getElementById('costTime').innerText = formatMoney(br.timeCost, currency);
+            }
 
-            // Breakdown costs
-            document.getElementById('costTime').innerText = formatMoney(breakdown.timeCost, currency);
-            document.getElementById('costMaterial').innerText = formatMoney(breakdown.materialCost, currency);
-            document.getElementById('costEnergy').innerText = formatMoney(breakdown.energyCost, currency);
-            document.getElementById('costMargin').innerText = formatMoney(breakdown.margin, currency);
+            // --- MATERIAŁ ---
+            // Przykład: "ABS, 2g × 80 PLN/kg"
+            if (br.material) {
+                document.getElementById('descMaterial').innerText = `${br.material.material}, ${br.material.grams}g × ${br.material.pricePerKg} PLN/kg`;
+                document.getElementById('costMaterial').innerText = formatMoney(br.materialCost, currency);
+            }
+
+            // --- ENERGIA ---
+            // Przykład: "Stawka: 2 PLN/h"
+            if (br.energy) {
+                document.getElementById('descEnergy').innerText = `Stawka roboczogodziny: ${br.energy.ratePerH} PLN/h`;
+                document.getElementById('costEnergy').innerText = formatMoney(br.energyCost, currency);
+            }
+
+            // --- MARŻA ---
+            // Przykład: "20% od kosztu bazowego"
+            if (br.marginInfo) {
+                document.getElementById('descMargin').innerText = `${br.marginInfo.percent}% narzutu`;
+                document.getElementById('costMargin').innerText = formatMoney(br.margin, currency);
+            }
 
             document.getElementById('quoteResult').style.display = 'block';
         }
 
         function handleError(data, jobId) {
             if (data.error === 'JOB_NOT_FOUND') {
-                showError(`Nie znaleziono zlecenia o numerze ${jobId}.`);
+                showError(`Nie znaleziono zlecenia ${jobId}.`);
             } else if (data.error === 'FILAMENT_PRICE_MISSING') {
-                showError('Brak zdefiniowanej ceny filamentu dla tego materiału.');
+                showError('Brak ceny filamentu w bazie.');
             } else {
-                showError(data.message || 'Wystąpił nieoczekiwany błąd (zobacz konsolę).');
+                showError(data.message || 'Wystąpił nieoczekiwany błąd.');
             }
         }
 
@@ -299,7 +318,6 @@
         }
 
         function formatMoney(amount, currency) {
-            // Konwersja na liczbę, bo czasem przychodzi string "88.13"
             const num = parseFloat(amount);
             if (isNaN(num)) return "0.00 " + currency;
             return num.toFixed(2) + " " + currency;

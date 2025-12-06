@@ -238,15 +238,18 @@
                 const response = await fetch('/api/quote/' + jobId);
                 let data = await response.json();
 
-                // Obsługa przypadku, gdy API zwraca tablicę
+                // 1. Obsługa tablicy (gdyby n8n zwrócił listę)
                 if (Array.isArray(data)) { data = data[0]; }
+
+                // 2. Debugowanie - zobacz w konsoli (F12), co dokładnie przyszło
+                console.log("Dane z API:", data);
 
                 if (!data) {
                     showError("Pusta odpowiedź z serwera.");
                     return;
                 }
 
-                // Sprawdzanie sukcesu
+                // 3. Sprawdzanie błędów
                 if (data.success === false || data.error) {
                     handleError(data, jobId);
                 } else {
@@ -263,41 +266,55 @@
         }
 
         function renderQuote(data) {
-            const currency = "PLN"; // Domyślnie PLN
-            const br = data.breakdown || {}; // Skrót do breakdown
+            const currency = "PLN";
+            // Zabezpieczenie: jeśli breakdown nie istnieje, stwórz pusty obiekt
+            const br = data.breakdown || {};
 
-            // --- SEKCJA GŁÓWNA ---
+            // --- GŁÓWNA SUMA ---
             document.getElementById('displayTotal').innerText = formatMoney(data.total, currency);
             document.getElementById('displayJobId').innerText = data.jobExtId || data.jobId || "Brak ID";
 
-            // --- CZAS ---
-            // Przykład: "21 min (35 PLN/h)"
+            // --- 1. CZAS ---
+            // Najpierw wpisujemy CENĘ (zawsze, jeśli jest dostępna)
+            document.getElementById('costTime').innerText = formatMoney(br.timeCost, currency);
+
+            // Potem próbujemy uzupełnić OPIS (tylko jeśli są detale)
             if (br.time) {
-                document.getElementById('descTime').innerText = `${br.time.minutes} min (${br.time.hhmmss}) × ${br.time.ratePerH} PLN/h`;
-                document.getElementById('costTime').innerText = formatMoney(br.timeCost, currency);
+                document.getElementById('descTime').innerText = `${br.time.minutes} min (${br.time.hhmmss})`;
+            } else {
+                document.getElementById('descTime').innerText = "Czas druku";
             }
 
-            // --- MATERIAŁ ---
-            // Przykład: "ABS, 2g × 80 PLN/kg"
+            // --- 2. MATERIAŁ ---
+            document.getElementById('costMaterial').innerText = formatMoney(br.materialCost, currency);
+
             if (br.material) {
-                document.getElementById('descMaterial').innerText = `${br.material.material}, ${br.material.grams}g × ${br.material.pricePerKg} PLN/kg`;
-                document.getElementById('costMaterial').innerText = formatMoney(br.materialCost, currency);
+                // Sprawdzamy czy mamy nazwę materiału, jak nie to wstawiamy "Filament"
+                const matName = br.material.material || "Filament";
+                document.getElementById('descMaterial').innerText = `${matName}, ${br.material.grams}g`;
+            } else {
+                document.getElementById('descMaterial').innerText = "Zużycie materiału";
             }
 
-            // --- ENERGIA ---
-            // Przykład: "Stawka: 2 PLN/h"
-            if (br.energy) {
-                document.getElementById('descEnergy').innerText = `Stawka roboczogodziny: ${br.energy.ratePerH} PLN/h`;
-                document.getElementById('costEnergy').innerText = formatMoney(br.energyCost, currency);
+            // --- 3. ENERGIA ---
+            document.getElementById('costEnergy').innerText = formatMoney(br.energyCost, currency);
+
+            if (br.energy && br.energy.ratePerH) {
+                document.getElementById('descEnergy').innerText = `Wg stawki ${br.energy.ratePerH} PLN/h`;
+            } else {
+                document.getElementById('descEnergy').innerText = "Koszt prądu";
             }
 
-            // --- MARŻA ---
-            // Przykład: "20% od kosztu bazowego"
-            if (br.marginInfo) {
-                document.getElementById('descMargin').innerText = `${br.marginInfo.percent}% narzutu`;
-                document.getElementById('costMargin').innerText = formatMoney(br.margin, currency);
+            // --- 4. MARŻA ---
+            document.getElementById('costMargin').innerText = formatMoney(br.margin, currency);
+
+            if (br.marginInfo && br.marginInfo.percent) {
+                document.getElementById('descMargin').innerText = `Narzut ${br.marginInfo.percent}%`;
+            } else {
+                document.getElementById('descMargin').innerText = "Marża serwisu";
             }
 
+            // Pokaż wynik
             document.getElementById('quoteResult').style.display = 'block';
         }
 
@@ -318,7 +335,8 @@
         }
 
         function formatMoney(amount, currency) {
-            const num = parseFloat(amount);
+            // Jeśli amount jest undefined/null, traktuj jako 0
+            const num = parseFloat(amount || 0);
             if (isNaN(num)) return "0.00 " + currency;
             return num.toFixed(2) + " " + currency;
         }

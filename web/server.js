@@ -51,12 +51,25 @@ app.get('/api/admin/pricing', async (req, res) => {
             {},
             { timeout: 10000 },
         );
-        res.json(r.data);
+
+        // r.data = tablica z n8n
+        const settingsArray = Array.isArray(r.data)
+            ? r.data
+            : (Array.isArray(r.data.settings) ? r.data.settings : []);
+
+        res.json({
+            success: true,
+            settings: settingsArray,
+        });
     } catch (e) {
         console.error(e.message);
-        res.status(500).json({ success: false, error: 'pricing_get_failed' });
+        res.status(500).json({
+            success: false,
+            error: 'pricing_get_failed',
+        });
     }
 });
+
 
 // proxy do n8n
 app.post('/api/chat', async (req, res) => {
@@ -178,9 +191,22 @@ app.post('/api/admin/pricing', async (req, res) => {
             req.body,
             { timeout: 10000 },
         );
-        res.json(r.data);
+
+        // jeśli n8n zwróci 2xx – traktujemy jako sukces
+        if (r.status >= 200 && r.status < 300) {
+            res.json({ success: true });
+        } else {
+            res.status(500).json({
+                success: false,
+                error: 'pricing_save_failed',
+                detail: r.data,
+            });
+        }
     } catch (e) {
         console.error(e.message);
-        res.status(500).json({ success: false, error: 'pricing_save_failed' });
+        res.status(500).json({
+            success: false,
+            error: 'pricing_save_failed',
+        });
     }
 });

@@ -367,16 +367,32 @@
             }, currency, "Brak danych o materiale");
 
             // Energia
-            updateRow('costEnergy', 'descEnergy', breakdown.energyCost, energy, (e) => {
-                const rate = (e.energyPerH !== undefined) ? e.energyPerH : 2;
-                return `Wg stawki ${rate} ${currency}/h`;
-            }, currency, "Wg stawki 2 " + currency + "/h");
+            updateRow(
+                'costEnergy',
+                'descEnergy',
+                breakdown.energyCost,
+                energy,
+                (e) => {
+                    if (!e || e.energyPerH == null) return 'Brak konfiguracji stawki energii';
+                    return `Wg stawki ${e.energyPerH.toFixed(2)} ${currency}/h`;
+                },
+                currency,
+                'Brak konfiguracji stawki energii'
+            );
 
             // Marża
-            updateRow('costMargin', 'descMargin', breakdown.margin, meta, (m) => {
-                const percent = (m.marginPercent !== undefined) ? m.marginPercent : 20;
-                return `Narzut ${percent}%`;
-            }, currency, "Narzut 20%");
+            updateRow(
+                'costMargin',
+                'descMargin',
+                breakdown.margin,
+                meta,
+                (m) => {
+                    if (!m || m.marginPercent == null) return 'Brak konfiguracji marży';
+                    return `Narzut ${m.marginPercent.toFixed(2)}%`;
+                },
+                currency,
+                'Brak konfiguracji marży'
+            );
 
             document.getElementById('quoteResult').style.display = 'block';
         }

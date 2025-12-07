@@ -34,7 +34,6 @@
             background: var(--card-bg);
             width: 100%;
             max-width: 600px;
-            /* Nieco szerszy kontener dla tabeli */
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
@@ -147,7 +146,6 @@
         /* SEKCJA HISTORII */
         .history-section {
             display: none;
-            /* Domyślnie ukryta, pokazuje się po załadowaniu */
             margin-top: 20px;
             border-top: 2px solid var(--border-color);
             padding-top: 20px;
@@ -301,7 +299,7 @@
             // Reset widoku
             errorBox.style.display = 'none';
             resultCard.style.display = 'none';
-            historySection.style.display = 'none'; // Ukryj historię przy nowym wyszukiwaniu
+            historySection.style.display = 'none';
 
             if (!jobId) {
                 showError("Proszę wpisać numer zlecenia.");
@@ -315,7 +313,6 @@
                 const response = await fetch('/api/quote/' + jobId);
                 let data = await response.json();
 
-                // Obsługa tablicy z n8n
                 if (Array.isArray(data)) { data = data[0]; }
 
                 console.log("Dane z API:", data);
@@ -328,10 +325,7 @@
                 if (data.success === false || data.error) {
                     handleError(data, jobId);
                 } else {
-                    // 1. Wyświetl kartę wyceny
                     renderQuote(data);
-
-                    // 2. Pobierz historię (DODANE)
                     await loadHistory(jobId);
                 }
 
@@ -355,49 +349,29 @@
             document.getElementById('displayTotal').innerText = formatMoney(data.total, currency);
             document.getElementById('displayJobId').innerText = data.jobExtId || data.jobId || "Brak ID";
 
-            // Czas
             updateRow('costTime', 'descTime', breakdown.timeCost, time, (t) => {
                 return `${t.minutes} min (${t.hhmmss}) × ${t.ratePerH} ${currency}/h`;
             }, currency, "Brak danych o czasie");
 
-            // Materiał
             updateRow('costMaterial', 'descMaterial', breakdown.materialCost, material, (m) => {
                 const name = m.material || "Filament";
                 return `${name}, ${m.grams}g × ${m.pricePerKg} ${currency}/kg`;
             }, currency, "Brak danych o materiale");
 
-            // Energia
-            updateRow(
-                'costEnergy',
-                'descEnergy',
-                breakdown.energyCost,
-                energy,
-                (e) => {
-                    if (!e || e.energyPerH == null) return 'Brak konfiguracji stawki energii';
-                    return `Wg stawki ${e.energyPerH.toFixed(2)} ${currency}/h`;
-                },
-                currency,
-                'Brak konfiguracji stawki energii'
-            );
+            updateRow('costEnergy', 'descEnergy', breakdown.energyCost, energy, (e) => {
+                if (!e || e.energyPerH == null) return 'Brak konfiguracji stawki energii';
+                return `Wg stawki ${e.energyPerH.toFixed(2)} ${currency}/h`;
+            }, currency, 'Brak konfiguracji stawki energii');
 
-            // Marża
-            updateRow(
-                'costMargin',
-                'descMargin',
-                breakdown.margin,
-                meta,
-                (m) => {
-                    if (!m || m.marginPercent == null) return 'Brak konfiguracji marży';
-                    return `Narzut ${m.marginPercent.toFixed(2)}%`;
-                },
-                currency,
-                'Brak konfiguracji marży'
-            );
+            updateRow('costMargin', 'descMargin', breakdown.margin, meta, (m) => {
+                if (!m || m.marginPercent == null) return 'Brak konfiguracji marży';
+                return `Narzut ${m.marginPercent.toFixed(2)}%`;
+            }, currency, 'Brak konfiguracji marży');
 
             document.getElementById('quoteResult').style.display = 'block';
         }
 
-        // --- NOWA FUNKCJA: Pobieranie historii ---
+        // --- POPRAWIONA FUNKCJA HISTORII ---
         async function loadHistory(extId) {
             const historySection = document.getElementById('historySection');
             const historyJobEl = document.getElementById('history-job-id');
@@ -405,18 +379,17 @@
             const emptyMsg = document.getElementById('history-empty');
 
             historyJobEl.textContent = extId;
-            tbody.innerHTML = ''; // Czyścimy tabelę
+            tbody.innerHTML = '';
             emptyMsg.style.display = 'none';
-            historySection.style.display = 'block'; // Pokazujemy sekcję
+            historySection.style.display = 'block';
 
             try {
-                // Fetch do Twojego endpointu historii
                 const res = await fetch(`/api/quote/${encodeURIComponent(extId)}/history`);
                 const data = await res.json();
 
-                // Sprawdzamy czy są dane. 
-                // Obsługujemy różne formaty (tablica data.quotes lub tablica data)
-                const quotes = data.quotes || (Array.isArray(data) ? data : []);
+                // --- POPRAWKA TUTAJ: Dodano obsługę data.history ---
+                // Twój webhook zwraca { success: true, history: [...] }
+                const quotes = data.history || data.quotes || (Array.isArray(data) ? data : []);
 
                 if (!quotes || quotes.length === 0) {
                     emptyMsg.style.display = 'block';
@@ -425,10 +398,9 @@
 
                 quotes.forEach(q => {
                     const tr = document.createElement('tr');
-                    const date = new Date(q.created_at); // Parsowanie daty
+                    const date = new Date(q.created_at);
                     const total = parseFloat(q.total || 0).toFixed(2);
 
-                    // Budowanie wiersza
                     tr.innerHTML = `
                     <td>${date.toLocaleString()}</td>
                     <td>${q.status || 'new'}</td>
@@ -436,7 +408,6 @@
                     <td></td> 
                 `;
 
-                    // Logika kolumny akcji (ostatnia komórka)
                     const actionTd = tr.lastElementChild;
 
                     if (q.status === 'accepted') {
@@ -445,8 +416,7 @@
                         const btn = document.createElement('button');
                         btn.className = 'btn-accept';
                         btn.innerText = 'Oznacz jako zaakceptowaną';
-                        // Przypisanie zdarzenia kliknięcia
-                        btn.onclick = () => acceptQuote(q.quoteId || q.id, extId); // Obsługa obu nazw ID
+                        btn.onclick = () => acceptQuote(q.quoteId || q.id, extId);
                         actionTd.appendChild(btn);
                     }
 
@@ -460,16 +430,14 @@
             }
         }
 
-        // --- NOWA FUNKCJA: Akceptacja wyceny ---
         async function acceptQuote(quoteId, extId) {
             if (!confirm('Oznaczyć tę wycenę jako zaakceptowaną?')) return;
 
             try {
-                // Wywołanie endpointu akceptacji
                 const res = await fetch(`/api/quote/${encodeURIComponent(quoteId)}/accept`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ acceptedBy: 'frontend' }) // Zgodnie ze screenem
+                    body: JSON.stringify({ acceptedBy: 'frontend' })
                 });
 
                 const data = await res.json();
@@ -480,7 +448,6 @@
                     return;
                 }
 
-                // Sukces -> przeładuj historię, aby zaktualizować status
                 await loadHistory(extId);
 
             } catch (err) {
@@ -500,7 +467,7 @@
                 descElement.style.fontStyle = "normal";
             } else {
                 if (parseFloat(costValue) > 0) {
-                    descElement.innerText = formatFn({}); // Użyj fallbacków
+                    descElement.innerText = formatFn({});
                     descElement.style.color = "#718096";
                     descElement.style.fontStyle = "normal";
                 } else {

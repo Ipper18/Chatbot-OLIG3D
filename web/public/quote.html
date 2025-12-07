@@ -163,7 +163,7 @@
         <h1>Wycena Druku 3D</h1>
 
         <div class="search-box">
-            <input type="text" id="jobInput" placeholder="Np. JOB-0012" value="JOB-0012">
+            <input type="text" id="jobInput" placeholder="Np. JOB-0024" value="JOB-0024">
             <button onclick="fetchQuote()" id="btnSubmit">Szukaj</button>
         </div>
 
@@ -219,7 +219,6 @@
             const errorBox = document.getElementById('errorBox');
             const resultCard = document.getElementById('quoteResult');
 
-            // Reset widoku
             errorBox.style.display = 'none';
             resultCard.style.display = 'none';
 
@@ -235,20 +234,16 @@
                 const response = await fetch('/api/quote/' + jobId);
                 let data = await response.json();
 
-                // 1. NAPRAWA PROBLEMU: n8n często zwraca tablicę obiektów
-                if (Array.isArray(data)) {
-                    data = data[0];
-                }
+                // Jeśli n8n zwraca tablicę, bierzemy pierwszy element
+                if (Array.isArray(data)) { data = data[0]; }
 
-                console.log("Otrzymane dane:", data); // Podgląd w konsoli
+                console.log("Dane z API:", data);
 
-                // 2. Obsługa pustej odpowiedzi
                 if (!data) {
-                    showError("Serwer zwrócił pustą odpowiedź.");
+                    showError("Pusta odpowiedź z serwera.");
                     return;
                 }
 
-                // 3. Sprawdzenie flagi success
                 if (data.success === false || data.error) {
                     handleError(data, jobId);
                 } else {
@@ -266,70 +261,77 @@
 
         function renderQuote(data) {
             const currency = data.currency || "PLN";
-
-            // Pobieramy koszty główne
             const breakdown = data.breakdown || {};
 
-            // Pobieramy szczegóły (są na głównym poziomie obiektu JSON)
+            // Pobieramy detale lub tworzymy puste obiekty, żeby kod się nie wywalił
             const time = data.time;
             const material = data.material;
-            const energy = data.energy;
-            const meta = data.meta;
+            // Wymuszamy, aby te zmienne nie były null/undefined, nawet jak JSON jest pusty
+            const energy = data.energy || {};
+            const meta = data.meta || {};
 
             // --- GÓRA KARTY ---
             document.getElementById('displayTotal').innerText = formatMoney(data.total, currency);
             document.getElementById('displayJobId').innerText = data.jobExtId || data.jobId || "Brak ID";
 
-            // --- WIERSZE ---
-
-            // 1. Czas
-            // Struktura: time.minutes, time.hhmmss, time.ratePerH
+            // --- 1. CZAS ---
             updateRow('costTime', 'descTime', breakdown.timeCost, time, (t) => {
                 return `${t.minutes} min (${t.hhmmss}) × ${t.ratePerH} ${currency}/h`;
             }, currency, "Brak danych o czasie");
 
-            // 2. Materiał
-            // Struktura: material.material, material.grams, material.pricePerKg
+            // --- 2. MATERIAŁ ---
             updateRow('costMaterial', 'descMaterial', breakdown.materialCost, material, (m) => {
                 const name = m.material || "Filament";
                 return `${name}, ${m.grams}g × ${m.pricePerKg} ${currency}/kg`;
             }, currency, "Brak danych o materiale");
 
-            // 3. Energia
-            // UWAGA: W Twoim JSON klucz to 'energyPerH', a nie 'ratePerH'
+            // --- 3. ENERGIA ---
+            // Poprawka: używamy 'energyPerH' z JSON, a jeśli brak - wstawiamy twarde 2
             updateRow('costEnergy', 'descEnergy', breakdown.energyCost, energy, (e) => {
-                return `Wg stawki ${e.energyPerH} ${currency}/h`;
-            }, currency, "Brak danych o energii");
+                // Logika: weź wartość z JSON LUB 2
+                const rate = (e.energyPerH !== undefined) ? e.energyPerH : 2;
+                return `Wg stawki ${rate} ${currency}/h`;
+            }, currency, "Wg stawki 2 " + currency + "/h");
 
-            // 4. Marża
-            // UWAGA: W Twoim JSON jest to w obiekcie 'meta', a klucz to 'marginPercent'
+            // --- 4. MARŻA ---
+            // Poprawka: używamy 'marginPercent' z JSON, a jeśli brak - wstawiamy twarde 20
             updateRow('costMargin', 'descMargin', breakdown.margin, meta, (m) => {
-                return `Narzut ${m.marginPercent}%`;
-            }, currency, "Marża serwisu");
+                // Logika: weź wartość z JSON LUB 20
+                const percent = (m.marginPercent !== undefined) ? m.marginPercent : 20;
+                return `Narzut ${percent}%`;
+            }, currency, "Narzut 20%");
 
-            // Pokazujemy gotową kartę
             document.getElementById('quoteResult').style.display = 'block';
         }
 
-        // Funkcja pomocnicza: aktualizuje cenę i opis
         function updateRow(costId, descId, costValue, detailsObj, formatFn, currency, defaultLabel) {
-            // Zawsze wpisujemy cenę (nawet jak brakuje detali)
             document.getElementById(costId).innerText = formatMoney(costValue, currency);
 
             const descElement = document.getElementById(descId);
 
-            // Jeśli mamy obiekt ze szczegółami, formatujemy go
-            if (detailsObj) {
+            // Wywołujemy formatowanie nawet jeśli obiekt jest pusty (aby użyć defaultów 2 PLN / 20%)
+            // Ale tylko jeśli mamy jakikolwiek koszt > 0 lub gdy mamy wyraźne polecenie (jak wyżej w defaultLabel)
+
+            // Zabezpieczenie: Sprawdzamy, czy detailsObj to "prawdziwe" dane czy pusty obiekt '{}'
+            const hasData = detailsObj && Object.keys(detailsObj).length > 0;
+
+            if (hasData) {
                 descElement.innerText = formatFn(detailsObj);
-                descElement.style.color = "#718096"; // Szary
+                descElement.style.color = "#718096";
+                descElement.style.fontStyle = "normal";
             } else {
-                // Jeśli ceny są > 0 ale brakuje detali, dajemy znać (dla debugu lub info)
+                // Jeśli brak szczegółów w JSON (np. pusty obiekt energy: {}),
+                // używamy formatFn na pustym obiekcie, bo tam zaszyliśmy logikę "OR 2" / "OR 20"
+                // pod warunkiem, że koszt istnieje (jest > 0).
                 if (parseFloat(costValue) > 0) {
-                    descElement.innerText = "Brak szczegółów w API";
-                    descElement.style.color = "#e53e3e"; // Czerwony
+                    // Wywołaj funkcję formatującą na pustym obiekcie, żeby wzięła wartości domyślne
+                    descElement.innerText = formatFn({});
+                    descElement.style.color = "#718096";
+                    descElement.style.fontStyle = "normal";
                 } else {
-                    descElement.innerText = defaultLabel;
-                    descElement.style.color = "#a0aec0"; // Jasny szary
+                    descElement.innerText = defaultLabel || "--";
+                    descElement.style.color = "#a0aec0";
+                    descElement.style.fontStyle = "italic";
                 }
             }
         }

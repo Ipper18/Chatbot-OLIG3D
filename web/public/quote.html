@@ -387,15 +387,23 @@
                 const res = await fetch(`/api/quote/${encodeURIComponent(extId)}/history`);
                 const data = await res.json();
 
-                // Obsługa data.history zgodnie z API
-                const quotes = data.history || data.quotes || (Array.isArray(data) ? data : []);
+                console.log("Surowe dane historii z API:", data); // Podgląd w konsoli
 
-                if (!quotes || quotes.length === 0) {
+                // Pobieramy tablicę z różnych możliwych formatów n8n
+                const rawQuotes = data.history || data.quotes || (Array.isArray(data) ? data : []);
+
+                if (!rawQuotes || rawQuotes.length === 0) {
                     emptyMsg.style.display = 'block';
                     return;
                 }
 
-                quotes.forEach(q => {
+                rawQuotes.forEach(item => {
+                    // --- NAPRAWA: Rozpakowanie danych z n8n ---
+                    // Jeśli n8n zwraca [{ json: {...} }], to bierzemy zawartość .json
+                    // Jeśli zwraca płaskie obiekty [{...}], bierzemy item
+                    const q = item.json || item;
+                    // ------------------------------------------
+
                     const tr = document.createElement('tr');
 
                     // Zabezpieczenie formatowania daty
@@ -407,8 +415,8 @@
 
                     const total = parseFloat(q.total || 0).toFixed(2);
 
-                    // 1. Zabezpieczone wyciąganie ID
-                    const validId = q.quoteId || q.id;
+                    // Szukamy ID w różnych polach
+                    const validId = q.quoteId || q.id || q.quote_id;
 
                     tr.innerHTML = `
                     <td>${dateStr}</td>
@@ -422,7 +430,6 @@
                     if (q.status === 'accepted') {
                         actionTd.innerHTML = '<span class="status-accepted">✔ Zaakceptowana</span>';
                     } else {
-                        // 2. Renderuj przycisk TYLKO, jeśli mamy ID
                         if (validId) {
                             const btn = document.createElement('button');
                             btn.className = 'btn-accept';
@@ -430,7 +437,8 @@
                             btn.onclick = () => acceptQuote(validId, extId);
                             actionTd.appendChild(btn);
                         } else {
-                            // Jeśli nie ma ID, pokazujemy myślnik lub info, żeby nie klikać
+                            // Debug w interfejsie - jeśli nadal brak ID
+                            console.warn("Wiersz bez ID:", q);
                             actionTd.innerHTML = '<span style="color:#ccc; font-size:0.9em;">(Brak ID)</span>';
                         }
                     }

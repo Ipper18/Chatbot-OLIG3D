@@ -136,6 +136,13 @@ app.get('/quote', (_req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'quote.html'));
 });
 
+app.get('/chat', (_req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'chat.html'));
+});
+
+app.get('/admin-pricing', basicAuth, (_req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin-pricing.html'));
+});
 
 app.listen(PORT, () => {
     console.log(`OLIG3D listening on :${PORT}`);

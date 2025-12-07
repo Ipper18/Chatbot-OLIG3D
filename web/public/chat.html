@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot OLIG3D</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f6f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 50px;
+            margin: 0;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: #2d3748;
+            margin-bottom: 20px;
+        }
+
+        /* Kontener okna czatu */
+        #chat-window {
+            width: 100%;
+            max-width: 500px;
+            height: 60vh;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow-y: auto;
+            /* Przewijanie */
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Lista wiadomości */
+        #messages {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Styl dymków wiadomości */
+        #messages li {
+            padding: 10px 15px;
+            border-radius: 10px;
+            max-width: 80%;
+            line-height: 1.4;
+            font-size: 15px;
+        }
+
+        /* Wiadomość użytkownika (po prawej) */
+        .user {
+            align-self: flex-end;
+            background-color: #007bff;
+            color: white;
+            border-bottom-right-radius: 2px !important;
+        }
+
+        .user strong {
+            color: #e2e8f0;
+        }
+
+        /* Wiadomość bota (po lewej) */
+        .bot {
+            align-self: flex-start;
+            background-color: #edf2f7;
+            color: #2d3748;
+            border-bottom-left-radius: 2px !important;
+        }
+
+        .bot strong {
+            color: #007bff;
+        }
+
+        /* Wiadomość błędu */
+        .error {
+            align-self: center;
+            background-color: #fff5f5;
+            color: #c53030;
+            border: 1px solid #fc8181;
+            font-size: 13px;
+        }
+
+        /* Formularz na dole */
+        #chat-form {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            gap: 10px;
+            padding-bottom: 20px;
+        }
+
+        #chat-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        #chat-input:focus {
+            border-color: #007bff;
+        }
+
+        button {
+            padding: 12px 24px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Przycisk resetowania sesji */
+        .reset-btn {
+            margin-top: 10px;
+            background: none;
+            border: none;
+            color: #718096;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Chatbot OLIG3D</h1>
+
+    <div id="chat-window">
+        <ul id="messages"></ul>
+    </div>
+
+    <form id="chat-form">
+        <input id="chat-input" type="text" autocomplete="off" placeholder="Napisz wiadomość...">
+        <button type="submit">Wyślij</button>
+    </form>
+
+    <button onclick="resetSession()" class="reset-btn">Zacznij nową rozmowę</button>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <script>
+        // Logika JavaScript (z Twojego pliku chat.js)
+
+        // 1. Pobieranie SessionID z LocalStorage (pamięć przeglądarki)
+        let sessionId = localStorage.getItem('olig3d_chat_session') || null;
+
+        const form = document.getElementById('chat-form');
+        const input = document.getElementById('chat-input');
+        const list = document.getElementById('messages');
+        const chatWindow = document.getElementById('chat-window');
+
+        // Obsługa wysłania formularza
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = input.value.trim();
+            if (!text) return;
+
+            // 1. Wyświetl wiadomość użytkownika od razu
+            appendMessage('Ty', text, 'user');
+            input.value = '';
+
+            try {
+                // 2. Wyślij zapytanie do Twojego backendu (który gada z n8n)
+                const res = await axios.post('/api/chat', {
+                    message: text,
+                    sessionId: sessionId
+                });
+
+                const data = res.data;
+
+                // 3. Aktualizacja SessionID (jeśli serwer nadał nowe)
+                if (data.sessionId && data.sessionId !== sessionId) {
+                    sessionId = data.sessionId;
+                    localStorage.setItem('olig3d_chat_session', sessionId);
+                }
+
+                // 4. Wyświetl odpowiedź Bota
+                const replyText = data.reply || '[brak odpowiedzi]';
+                appendMessage('OLIG3D', replyText, 'bot');
+
+            } catch (err) {
+                console.error(err);
+                appendMessage('System', 'Wystąpił błąd podczas rozmowy.', 'error');
+            }
+        });
+
+        // Funkcja pomocnicza do dodawania dymków
+        function appendMessage(who, text, cssClass) {
+            const li = document.createElement('li');
+            li.className = cssClass;
+
+            // Bezpieczne wstawianie tekstu (zamiana enterów na <br>)
+            // HTML wewnątrz strong dla nazwy autora
+            li.innerHTML = `<strong>${who}:</strong> <br>${text.replace(/\n/g, '<br>')}`;
+
+            list.appendChild(li);
+
+            // Automatyczne przewijanie na dół
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        // Opcjonalne: Funkcja czyszcząca sesję
+        function resetSession() {
+            localStorage.removeItem('olig3d_chat_session');
+            sessionId = null;
+            list.innerHTML = '';
+            appendMessage('System', 'Rozpoczęto nową sesję.', 'error');
+        }
+    </script>
+
+</body>
+
+</html>

@@ -67,6 +67,28 @@ app.get('/api/quote/:extId', async (req, res) => {
     }
 });
 
+app.get('/api/quote/:extId/history', async (req, res) => {
+    const { extId } = req.params;
+
+    try {
+        const r = await axios.post(
+            process.env.N8N_QUOTE_HISTORY_WEBHOOK_URL,
+            { extId },
+            { timeout: 15000 },
+        );
+
+        res.json(r.data);
+    } catch (e) {
+        console.error('quote history error', e.message);
+        const status = e.response?.status || 500;
+        res.status(status).json({
+            success: false,
+            error: 'quote_history_failed',
+            detail: e.response?.data || e.message,
+        });
+    }
+});
+
 app.get('/metrics', async (_req, res) => {
     try {
         res.set('Content-Type', client.register.contentType);
@@ -83,4 +105,27 @@ app.get('/quote', (_req, res) => {
 
 app.listen(PORT, () => {
     console.log(`OLIG3D listening on :${PORT}`);
+});
+
+app.post('/api/quote/:id/accept', async (req, res) => {
+    const { id } = req.params;
+    const { acceptedBy } = req.body || {};
+
+    try {
+        const r = await axios.post(
+            process.env.N8N_QUOTE_ACCEPT_WEBHOOK_URL,
+            { quoteId: id, acceptedBy: acceptedBy || null },
+            { timeout: 15000 },
+        );
+
+        res.json(r.data);
+    } catch (e) {
+        console.error('quote accept error', e.message);
+        const status = e.response?.status || 500;
+        res.status(status).json({
+            success: false,
+            error: 'quote_accept_failed',
+            detail: e.response?.data || e.message,
+        });
+    }
 });

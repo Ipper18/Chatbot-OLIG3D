@@ -8,6 +8,7 @@
     <style>
         :root {
             --primary: #007bff;
+            --success: #28a745;
             --bg: #f4f6f9;
             --text: #333;
             --card-bg: #ffffff;
@@ -15,6 +16,7 @@
             --error-text: #c53030;
             --error-border: #fc8181;
             --gray-light: #718096;
+            --border-color: #eee;
         }
 
         body {
@@ -23,14 +25,16 @@
             color: var(--text);
             display: flex;
             justify-content: center;
-            padding-top: 50px;
+            padding-top: 40px;
+            padding-bottom: 40px;
             margin: 0;
         }
 
         .container {
             background: var(--card-bg);
             width: 100%;
-            max-width: 500px;
+            max-width: 600px;
+            /* Nieco szerszy kontener dla tabeli */
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
@@ -41,6 +45,12 @@
             font-size: 24px;
             text-align: center;
             color: #2d3748;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin-top: 0;
+            color: #4a5568;
         }
 
         .search-box {
@@ -58,7 +68,7 @@
             outline: none;
         }
 
-        button {
+        button.btn-primary {
             padding: 12px 24px;
             background-color: var(--primary);
             color: white;
@@ -69,21 +79,23 @@
             font-size: 16px;
         }
 
-        button:disabled {
+        button.btn-primary:disabled {
             background-color: #cbd5e0;
             cursor: wait;
         }
 
+        /* KARTA WYNIKU */
         .quote-card {
             display: none;
             animation: fadeIn 0.3s ease-in;
+            margin-bottom: 30px;
         }
 
         .total-price-section {
             text-align: center;
             margin-bottom: 20px;
             padding-bottom: 20px;
-            border-bottom: 1px solid #edf2f7;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .total-value {
@@ -104,7 +116,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 12px 0;
-            border-bottom: 1px dashed #e2e8f0;
+            border-bottom: 1px dashed var(--border-color);
         }
 
         .detail-item:last-child {
@@ -130,6 +142,54 @@
         .detail-value {
             font-weight: 600;
             font-size: 15px;
+        }
+
+        /* SEKCJA HISTORII */
+        .history-section {
+            display: none;
+            /* Domyślnie ukryta, pokazuje się po załadowaniu */
+            margin-top: 20px;
+            border-top: 2px solid var(--border-color);
+            padding-top: 20px;
+        }
+
+        table.quotes-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        table.quotes-table th,
+        table.quotes-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        table.quotes-table th {
+            background-color: #f7fafc;
+            color: #4a5568;
+            font-weight: 600;
+        }
+
+        .btn-accept {
+            background-color: var(--success);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .btn-accept:hover {
+            background-color: #218838;
+        }
+
+        .status-accepted {
+            color: var(--success);
+            font-weight: bold;
         }
 
         .error-box {
@@ -163,8 +223,8 @@
         <h1>Wycena Druku 3D</h1>
 
         <div class="search-box">
-            <input type="text" id="jobInput" placeholder="Np. JOB-0024" value="JOB-0024">
-            <button onclick="fetchQuote()" id="btnSubmit">Szukaj</button>
+            <input type="text" id="jobInput" placeholder="Np. JOB-0012" value="JOB-0012">
+            <button onclick="fetchQuote()" id="btnSubmit" class="btn-primary">Szukaj</button>
         </div>
 
         <div id="errorBox" class="error-box"></div>
@@ -184,7 +244,6 @@
                     </div>
                     <span class="detail-value" id="costTime">0.00</span>
                 </li>
-
                 <li class="detail-item">
                     <div class="detail-left">
                         <span class="detail-label">🧵 Materiał (Filament)</span>
@@ -192,7 +251,6 @@
                     </div>
                     <span class="detail-value" id="costMaterial">0.00</span>
                 </li>
-
                 <li class="detail-item">
                     <div class="detail-left">
                         <span class="detail-label">⚡ Energia</span>
@@ -200,7 +258,6 @@
                     </div>
                     <span class="detail-value" id="costEnergy">0.00</span>
                 </li>
-
                 <li class="detail-item">
                     <div class="detail-left">
                         <span class="detail-label">📈 Marża</span>
@@ -210,6 +267,27 @@
                 </li>
             </ul>
         </div>
+
+        <div id="historySection" class="history-section">
+            <h2>Historia wycen dla <span id="history-job-id"></span></h2>
+
+            <table id="quotes-history" class="quotes-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Status</th>
+                        <th>Suma</th>
+                        <th>Akcja</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+
+            <p id="history-empty" style="display:none; color: #718096; text-align: center; margin-top: 15px;">
+                Brak wcześniejszych wycen.
+            </p>
+        </div>
     </div>
 
     <script>
@@ -218,9 +296,12 @@
             const btn = document.getElementById('btnSubmit');
             const errorBox = document.getElementById('errorBox');
             const resultCard = document.getElementById('quoteResult');
+            const historySection = document.getElementById('historySection');
 
+            // Reset widoku
             errorBox.style.display = 'none';
             resultCard.style.display = 'none';
+            historySection.style.display = 'none'; // Ukryj historię przy nowym wyszukiwaniu
 
             if (!jobId) {
                 showError("Proszę wpisać numer zlecenia.");
@@ -234,7 +315,7 @@
                 const response = await fetch('/api/quote/' + jobId);
                 let data = await response.json();
 
-                // Jeśli n8n zwraca tablicę, bierzemy pierwszy element
+                // Obsługa tablicy z n8n
                 if (Array.isArray(data)) { data = data[0]; }
 
                 console.log("Dane z API:", data);
@@ -247,7 +328,11 @@
                 if (data.success === false || data.error) {
                     handleError(data, jobId);
                 } else {
+                    // 1. Wyświetl kartę wyceny
                     renderQuote(data);
+
+                    // 2. Pobierz historię (DODANE)
+                    await loadHistory(jobId);
                 }
 
             } catch (err) {
@@ -262,41 +347,33 @@
         function renderQuote(data) {
             const currency = data.currency || "PLN";
             const breakdown = data.breakdown || {};
-
-            // Pobieramy detale lub tworzymy puste obiekty, żeby kod się nie wywalił
             const time = data.time;
             const material = data.material;
-            // Wymuszamy, aby te zmienne nie były null/undefined, nawet jak JSON jest pusty
             const energy = data.energy || {};
             const meta = data.meta || {};
 
-            // --- GÓRA KARTY ---
             document.getElementById('displayTotal').innerText = formatMoney(data.total, currency);
             document.getElementById('displayJobId').innerText = data.jobExtId || data.jobId || "Brak ID";
 
-            // --- 1. CZAS ---
+            // Czas
             updateRow('costTime', 'descTime', breakdown.timeCost, time, (t) => {
                 return `${t.minutes} min (${t.hhmmss}) × ${t.ratePerH} ${currency}/h`;
             }, currency, "Brak danych o czasie");
 
-            // --- 2. MATERIAŁ ---
+            // Materiał
             updateRow('costMaterial', 'descMaterial', breakdown.materialCost, material, (m) => {
                 const name = m.material || "Filament";
                 return `${name}, ${m.grams}g × ${m.pricePerKg} ${currency}/kg`;
             }, currency, "Brak danych o materiale");
 
-            // --- 3. ENERGIA ---
-            // Poprawka: używamy 'energyPerH' z JSON, a jeśli brak - wstawiamy twarde 2
+            // Energia
             updateRow('costEnergy', 'descEnergy', breakdown.energyCost, energy, (e) => {
-                // Logika: weź wartość z JSON LUB 2
                 const rate = (e.energyPerH !== undefined) ? e.energyPerH : 2;
                 return `Wg stawki ${rate} ${currency}/h`;
             }, currency, "Wg stawki 2 " + currency + "/h");
 
-            // --- 4. MARŻA ---
-            // Poprawka: używamy 'marginPercent' z JSON, a jeśli brak - wstawiamy twarde 20
+            // Marża
             updateRow('costMargin', 'descMargin', breakdown.margin, meta, (m) => {
-                // Logika: weź wartość z JSON LUB 20
                 const percent = (m.marginPercent !== undefined) ? m.marginPercent : 20;
                 return `Narzut ${percent}%`;
             }, currency, "Narzut 20%");
@@ -304,15 +381,101 @@
             document.getElementById('quoteResult').style.display = 'block';
         }
 
+        // --- NOWA FUNKCJA: Pobieranie historii ---
+        async function loadHistory(extId) {
+            const historySection = document.getElementById('historySection');
+            const historyJobEl = document.getElementById('history-job-id');
+            const tbody = document.querySelector('#quotes-history tbody');
+            const emptyMsg = document.getElementById('history-empty');
+
+            historyJobEl.textContent = extId;
+            tbody.innerHTML = ''; // Czyścimy tabelę
+            emptyMsg.style.display = 'none';
+            historySection.style.display = 'block'; // Pokazujemy sekcję
+
+            try {
+                // Fetch do Twojego endpointu historii
+                const res = await fetch(`/api/quote/${encodeURIComponent(extId)}/history`);
+                const data = await res.json();
+
+                // Sprawdzamy czy są dane. 
+                // Obsługujemy różne formaty (tablica data.quotes lub tablica data)
+                const quotes = data.quotes || (Array.isArray(data) ? data : []);
+
+                if (!quotes || quotes.length === 0) {
+                    emptyMsg.style.display = 'block';
+                    return;
+                }
+
+                quotes.forEach(q => {
+                    const tr = document.createElement('tr');
+                    const date = new Date(q.created_at); // Parsowanie daty
+                    const total = parseFloat(q.total || 0).toFixed(2);
+
+                    // Budowanie wiersza
+                    tr.innerHTML = `
+                    <td>${date.toLocaleString()}</td>
+                    <td>${q.status || 'new'}</td>
+                    <td>${total} PLN</td>
+                    <td></td> 
+                `;
+
+                    // Logika kolumny akcji (ostatnia komórka)
+                    const actionTd = tr.lastElementChild;
+
+                    if (q.status === 'accepted') {
+                        actionTd.innerHTML = '<span class="status-accepted">✔ Zaakceptowana</span>';
+                    } else {
+                        const btn = document.createElement('button');
+                        btn.className = 'btn-accept';
+                        btn.innerText = 'Oznacz jako zaakceptowaną';
+                        // Przypisanie zdarzenia kliknięcia
+                        btn.onclick = () => acceptQuote(q.quoteId || q.id, extId); // Obsługa obu nazw ID
+                        actionTd.appendChild(btn);
+                    }
+
+                    tbody.appendChild(tr);
+                });
+
+            } catch (err) {
+                console.error("Błąd ładowania historii:", err);
+                emptyMsg.innerText = "Błąd pobierania historii.";
+                emptyMsg.style.display = 'block';
+            }
+        }
+
+        // --- NOWA FUNKCJA: Akceptacja wyceny ---
+        async function acceptQuote(quoteId, extId) {
+            if (!confirm('Oznaczyć tę wycenę jako zaakceptowaną?')) return;
+
+            try {
+                // Wywołanie endpointu akceptacji
+                const res = await fetch(`/api/quote/${encodeURIComponent(quoteId)}/accept`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ acceptedBy: 'frontend' }) // Zgodnie ze screenem
+                });
+
+                const data = await res.json();
+
+                if (!data.success) {
+                    alert('Nie udało się oznaczyć wyceny: ' + (data.message || 'Błąd API'));
+                    console.error(data);
+                    return;
+                }
+
+                // Sukces -> przeładuj historię, aby zaktualizować status
+                await loadHistory(extId);
+
+            } catch (err) {
+                console.error(err);
+                alert('Błąd przy oznaczaniu wyceny.');
+            }
+        }
+
         function updateRow(costId, descId, costValue, detailsObj, formatFn, currency, defaultLabel) {
             document.getElementById(costId).innerText = formatMoney(costValue, currency);
-
             const descElement = document.getElementById(descId);
-
-            // Wywołujemy formatowanie nawet jeśli obiekt jest pusty (aby użyć defaultów 2 PLN / 20%)
-            // Ale tylko jeśli mamy jakikolwiek koszt > 0 lub gdy mamy wyraźne polecenie (jak wyżej w defaultLabel)
-
-            // Zabezpieczenie: Sprawdzamy, czy detailsObj to "prawdziwe" dane czy pusty obiekt '{}'
             const hasData = detailsObj && Object.keys(detailsObj).length > 0;
 
             if (hasData) {
@@ -320,12 +483,8 @@
                 descElement.style.color = "#718096";
                 descElement.style.fontStyle = "normal";
             } else {
-                // Jeśli brak szczegółów w JSON (np. pusty obiekt energy: {}),
-                // używamy formatFn na pustym obiekcie, bo tam zaszyliśmy logikę "OR 2" / "OR 20"
-                // pod warunkiem, że koszt istnieje (jest > 0).
                 if (parseFloat(costValue) > 0) {
-                    // Wywołaj funkcję formatującą na pustym obiekcie, żeby wzięła wartości domyślne
-                    descElement.innerText = formatFn({});
+                    descElement.innerText = formatFn({}); // Użyj fallbacków
                     descElement.style.color = "#718096";
                     descElement.style.fontStyle = "normal";
                 } else {

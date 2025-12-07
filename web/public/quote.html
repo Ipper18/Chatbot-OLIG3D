@@ -387,75 +387,57 @@
                 const res = await fetch(`/api/quote/${encodeURIComponent(extId)}/history`);
                 const data = await res.json();
 
-                console.log("--- DEBUG HISTORII ---");
-                console.log("Otrzymane dane:", data);
+                console.log("Otrzymane dane:", data); // Debug
 
-                // Próbujemy wyciągnąć tablicę z różnych miejsc
-                let rawQuotes = [];
-                if (data.history && Array.isArray(data.history)) rawQuotes = data.history;
-                else if (data.quotes && Array.isArray(data.quotes)) rawQuotes = data.quotes;
-                else if (Array.isArray(data)) rawQuotes = data;
+                // 1. POPRAWKA: Celujemy dokładnie w tablicę 'quotes' z Twojego screena
+                const quotesList = data.quotes || [];
 
-                console.log("Znaleziona tablica rekordów:", rawQuotes);
-
-                if (rawQuotes.length === 0) {
+                if (quotesList.length === 0) {
                     emptyMsg.style.display = 'block';
                     return;
                 }
 
-                rawQuotes.forEach((item, index) => {
-                    // Rozpakowanie: jeśli item ma pole .json, użyj go, w przeciwnym razie użyj item
-                    const q = item.json || item;
-
-                    // Szukamy kluczy ignorując wielkość liter (np. ID vs id)
-                    const getKey = (obj, keyName) => {
-                        const key = Object.keys(obj).find(k => k.toLowerCase() === keyName.toLowerCase());
-                        return key ? obj[key] : undefined;
-                    };
-
-                    const valId = getKey(q, 'id') || getKey(q, 'quoteid') || getKey(q, 'uuid');
-                    const valDate = getKey(q, 'created_at') || getKey(q, 'createdat') || getKey(q, 'date');
-                    const valStatus = getKey(q, 'status') || 'new';
-                    const valTotal = getKey(q, 'total') || 0;
-                    const valCurrency = getKey(q, 'currency') || 'PLN';
-
-                    // Logowanie problemów dla konkretnego wiersza
-                    if (!valId) console.warn(`Wiersz #${index}: Brak ID! Dostępne klucze:`, Object.keys(q));
-                    if (!valDate) console.warn(`Wiersz #${index}: Brak DATY!`);
-
+                quotesList.forEach(q => {
                     const tr = document.createElement('tr');
 
-                    // Data
+                    // 2. POPRAWKA: Mapujemy pola dokładnie tak, jak są w Twoim JSON (z małej litery)
+                    // JSON: { "id": "...", "created_at": "...", "total": 319.46, "status": "draft" }
+
                     let dateStr = "---";
-                    if (valDate) {
-                        const date = new Date(valDate);
-                        dateStr = !isNaN(date) ? date.toLocaleString() : valDate;
+                    if (q.created_at) {
+                        const date = new Date(q.created_at);
+                        dateStr = !isNaN(date) ? date.toLocaleString() : q.created_at;
                     }
 
-                    // Cena
-                    const totalStr = parseFloat(valTotal).toFixed(2);
+                    const total = parseFloat(q.total || 0).toFixed(2);
+                    const currentStatus = q.status || 'new';
 
                     tr.innerHTML = `
                     <td>${dateStr}</td>
-                    <td>${valStatus}</td>
-                    <td>${totalStr} ${valCurrency}</td>
+                    <td>${currentStatus}</td>
+                    <td>${total} PLN</td>
                     <td></td> 
                     `;
 
                     const actionTd = tr.lastElementChild;
 
-                    if (valStatus === 'accepted') {
+                    // 3. POPRAWKA: Logika przycisku
+                    // Jeśli status to 'accepted', pokazujemy ptaszka.
+                    // W każdym innym przypadku (np. 'draft', 'new') pokazujemy przycisk, O ILE mamy ID.
+                    if (currentStatus === 'accepted') {
                         actionTd.innerHTML = '<span class="status-accepted">✔ Zaakceptowana</span>';
                     } else {
-                        if (valId) {
+                        if (q.id) {
                             const btn = document.createElement('button');
                             btn.className = 'btn-accept';
                             btn.innerText = 'Oznacz jako zaakceptowaną';
-                            btn.onclick = () => acceptQuote(valId, extId);
+                            // Przekazujemy q.id
+                            btn.onclick = () => acceptQuote(q.id, extId);
                             actionTd.appendChild(btn);
                         } else {
-                            // Tu jest przyczyna braku akcji - brak ID
-                            actionTd.innerHTML = '<span style="color:#ccc; font-size:0.8em;">(Błąd danych: brak ID)</span>';
+                            // Jeśli jakimś cudem ID jest puste
+                            console.warn("Wiersz bez ID:", q);
+                            actionTd.innerHTML = '<span style="color:#ccc; font-size:0.8em;">(Błąd: brak ID)</span>';
                         }
                     }
 
@@ -463,7 +445,7 @@
                 });
 
             } catch (err) {
-                console.error("CRITICAL ERROR w loadHistory:", err);
+                console.error("Błąd w loadHistory:", err);
                 emptyMsg.innerText = "Błąd pobierania historii.";
                 emptyMsg.style.display = 'block';
             }

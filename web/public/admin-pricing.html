@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Administratora – Stawki</title>
+    <style>
+        :root {
+            --primary: #007bff;
+            --primary-hover: #0056b3;
+            --bg: #f4f6f9;
+            --text: #333;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --success-bg: #d4edda;
+            --success-text: #155724;
+            --error-bg: #fff5f5;
+            --error-text: #c53030;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 50px;
+            margin: 0;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+            color: #2d3748;
+        }
+
+        .container {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 450px;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #4a5568;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 16px;
+            outline: none;
+            box-sizing: border-box;
+            /* Ważne, żeby padding nie rozpychał width */
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            margin-top: 10px;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        button:disabled {
+            background-color: #cbd5e0;
+            cursor: wait;
+        }
+
+        /* Status box (sukces/błąd) */
+        #status-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 14px;
+            display: none;
+            /* Domyślnie ukryty */
+        }
+
+        .status-success {
+            background-color: var(--success-bg);
+            color: var(--success-text);
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background-color: var(--error-bg);
+            color: var(--error-text);
+            border: 1px solid #f5c6cb;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #718096;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Konfiguracja Stawek</h1>
+
+    <div class="container">
+        <form id="pricing-form">
+
+            <div class="form-group">
+                <label for="machine-rate">Stawka maszyny [PLN/h]</label>
+                <input type="number" step="0.01" id="machine-rate" placeholder="np. 35.00" required>
+                <div class="hint">Koszt roboczogodziny drukarki</div>
+            </div>
+
+            <div class="form-group">
+                <label for="energy-rate">Stawka energii [PLN/h]</label>
+                <input type="number" step="0.01" id="energy-rate" placeholder="np. 2.00" required>
+                <div class="hint">Średni koszt zużycia prądu na godzinę</div>
+            </div>
+
+            <div class="form-group">
+                <label for="margin-percent">Marża serwisu [%]</label>
+                <input type="number" step="1" id="margin-percent" placeholder="np. 20" required>
+                <div class="hint">Procentowy narzut doliczany do wyceny</div>
+            </div>
+
+            <button type="submit" id="save-btn">Zapisz zmiany</button>
+        </form>
+
+        <div id="status-box"></div>
+    </div>
+
+    <script>
+        const machineEl = document.getElementById('machine-rate');
+        const energyEl = document.getElementById('energy-rate');
+        const marginEl = document.getElementById('margin-percent');
+        const statusBox = document.getElementById('status-box');
+        const btn = document.getElementById('save-btn');
+
+        // Funkcja wyświetlająca komunikaty
+        function showStatus(msg, type) {
+            statusBox.textContent = msg;
+            statusBox.className = type === 'success' ? 'status-success' : 'status-error';
+            statusBox.style.display = 'block';
+
+            // Ukryj po 3 sekundach, jeśli to sukces
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusBox.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // 1. Ładowanie aktualnych stawek przy starcie
+        async function loadPricing() {
+            try {
+                // Blokujemy pola podczas ładowania
+                setInputsDisabled(true);
+
+                const res = await fetch('/api/admin/pricing');
+                const data = await res.json();
+
+                if (!data.success) throw new Error('Błąd API: ' + (data.message || 'Unknown'));
+
+                // Przekształcamy tablicę settings na obiekt dla łatwiejszego dostępu
+                // Zakładamy strukturę: [{ key: 'KEY_NAME', value: 123 }, ...]
+                const byKey = {};
+                if (data.settings && Array.isArray(data.settings)) {
+                    for (const row of data.settings) {
+                        byKey[row.key] = row;
+                    }
+                }
+
+                // Ustawiamy wartości (z fallbackami)
+                machineEl.value = byKey.MACHINE_RATE_PER_H?.value ?? 35;
+                energyEl.value = byKey.ENERGY_RATE_PER_H?.value ?? 2;
+
+                // UWAGA: W bazie trzymamy np. 0.2 (ułamek), a w formularzu wyświetlamy 20 (%)
+                // Jeśli w bazie nie ma wartości, domyślnie 20% (0.2)
+                const marginDecimal = byKey.DEFAULT_MARGIN_PERCENT?.value ?? 0.2;
+                marginEl.value = Math.round(marginDecimal * 100);
+
+            } catch (err) {
+                console.error(err);
+                showStatus('Nie udało się pobrać aktualnych stawek.', 'error');
+            } finally {
+                setInputsDisabled(false);
+            }
+        }
+
+        // 2. Zapisywanie formularza
+        document.getElementById('pricing-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            btn.disabled = true;
+            btn.textContent = 'Zapisywanie...';
+            statusBox.style.display = 'none';
+
+            // Przygotowanie payloadu
+            // Konwertujemy marżę z % na ułamek (np. 25 -> 0.25)
+            const payload = {
+                machine_rate_per_h: Number(machineEl.value),
+                energy_rate_per_h: Number(energyEl.value),
+                margin_percent: Number(marginEl.value) / 100,
+            };
+
+            try {
+                const res = await fetch('/api/admin/pricing', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    showStatus('Pomyślnie zaktualizowano stawki! 👍', 'success');
+                } else {
+                    throw new Error(data.message || 'Błąd zapisu');
+                }
+            } catch (err) {
+                console.error(err);
+                showStatus('Wystąpił błąd podczas zapisu.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Zapisz zmiany';
+            }
+        });
+
+        function setInputsDisabled(state) {
+            machineEl.disabled = state;
+            energyEl.disabled = state;
+            marginEl.disabled = state;
+            btn.disabled = state;
+        }
+
+        // Uruchomienie pobierania
+        loadPricing();
+    </script>
+</body>
+
+</html>

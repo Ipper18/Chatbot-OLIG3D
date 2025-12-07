@@ -11,6 +11,26 @@ const client = require('prom-client');
 client.collectDefaultMetrics(); // zbiera CPU, RAM, GC itd.   
 
 
+
+function basicAuth(req, res, next) {
+    const header = req.headers.authorization || '';
+    const [type, encoded] = header.split(' ');
+    if (type !== 'Basic' || !encoded) {
+        res.setHeader('WWW-Authenticate', 'Basic realm="OLIG3D Admin"');
+        return res.status(401).end('Auth required');
+    }
+
+    const [user, pass] = Buffer.from(encoded, 'base64').toString().split(':');
+    if (user !== process.env.ADMIN_USER || pass !== process.env.ADMIN_PASS) {
+        return res.status(403).end('Forbidden');
+    }
+
+    next();
+}
+
+app.use('/api/admin', basicAuth);
+
+
 app.use(express.json());
 
 // zdrowie dla Coolify
@@ -22,6 +42,20 @@ app.use(express.static(path.join(__dirname, 'public')));
 // root → index.html (żeby nie było "Cannot GET /")
 app.get('/', (_req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/api/admin/pricing', async (req, res) => {
+    try {
+        const r = await axios.post(
+            process.env.N8N_PRICING_GET_URL,
+            {},
+            { timeout: 10000 },
+        );
+        res.json(r.data);
+    } catch (e) {
+        console.error(e.message);
+        res.status(500).json({ success: false, error: 'pricing_get_failed' });
+    }
 });
 
 // proxy do n8n
@@ -127,5 +161,19 @@ app.post('/api/quote/:id/accept', async (req, res) => {
             error: 'quote_accept_failed',
             detail: e.response?.data || e.message,
         });
+    }
+});
+
+app.post('/api/admin/pricing', async (req, res) => {
+    try {
+        const r = await axios.post(
+            process.env.N8N_PRICING_SAVE_URL,
+            req.body,
+            { timeout: 10000 },
+        );
+        res.json(r.data);
+    } catch (e) {
+        console.error(e.message);
+        res.status(500).json({ success: false, error: 'pricing_save_failed' });
     }
 });

@@ -219,6 +219,7 @@
             const errorBox = document.getElementById('errorBox');
             const resultCard = document.getElementById('quoteResult');
 
+            // Reset widoku
             errorBox.style.display = 'none';
             resultCard.style.display = 'none';
 
@@ -234,16 +235,20 @@
                 const response = await fetch('/api/quote/' + jobId);
                 let data = await response.json();
 
-                // Obsługa tablicy z n8n (częsty przypadek)
-                if (Array.isArray(data)) { data = data[0]; }
+                // 1. NAPRAWA PROBLEMU: n8n często zwraca tablicę obiektów
+                if (Array.isArray(data)) {
+                    data = data[0];
+                }
 
-                console.log("Dane z API:", data); // Debug
+                console.log("Otrzymane dane:", data); // Podgląd w konsoli
 
+                // 2. Obsługa pustej odpowiedzi
                 if (!data) {
-                    showError("Pusta odpowiedź z serwera.");
+                    showError("Serwer zwrócił pustą odpowiedź.");
                     return;
                 }
 
+                // 3. Sprawdzenie flagi success
                 if (data.success === false || data.error) {
                     handleError(data, jobId);
                 } else {
@@ -262,61 +267,70 @@
         function renderQuote(data) {
             const currency = data.currency || "PLN";
 
-            // 1. Koszty są w 'breakdown'
-            const costs = data.breakdown || {};
+            // Pobieramy koszty główne
+            const breakdown = data.breakdown || {};
 
-            // 2. Szczegóły są w głównym obiekcie (według Twojego JSON-a)
-            const timeDetails = data.time;
-            const matDetails = data.material;
-            const energyDetails = data.energy;
-            const metaDetails = data.meta; // Tutaj jest marża
+            // Pobieramy szczegóły (są na głównym poziomie obiektu JSON)
+            const time = data.time;
+            const material = data.material;
+            const energy = data.energy;
+            const meta = data.meta;
 
-            // --- GŁÓWNA SUMA ---
+            // --- GÓRA KARTY ---
             document.getElementById('displayTotal').innerText = formatMoney(data.total, currency);
             document.getElementById('displayJobId').innerText = data.jobExtId || data.jobId || "Brak ID";
 
-            // --- CZAS ---
-            updateRow('costTime', 'descTime', costs.timeCost, timeDetails, (d) => {
-                return `${d.minutes} min (${d.hhmmss})`;
-            }, currency, "Czas druku");
+            // --- WIERSZE ---
 
-            // --- MATERIAŁ ---
-            updateRow('costMaterial', 'descMaterial', costs.materialCost, matDetails, (d) => {
-                const name = d.material || "Filament";
-                return `${name}, ${d.grams}g`;
-            }, currency, "Zużycie materiału");
+            // 1. Czas
+            // Struktura: time.minutes, time.hhmmss, time.ratePerH
+            updateRow('costTime', 'descTime', breakdown.timeCost, time, (t) => {
+                return `${t.minutes} min (${t.hhmmss}) × ${t.ratePerH} ${currency}/h`;
+            }, currency, "Brak danych o czasie");
 
-            // --- ENERGIA ---
-            updateRow('costEnergy', 'descEnergy', costs.energyCost, energyDetails, (d) => {
-                // W Twoim JSON jest 'energyPerH', a nie 'ratePerH'
-                const rate = d.energyPerH || d.ratePerH;
-                return `Wg stawki ${rate} ${currency}/h`;
-            }, currency, "Koszt energii");
+            // 2. Materiał
+            // Struktura: material.material, material.grams, material.pricePerKg
+            updateRow('costMaterial', 'descMaterial', breakdown.materialCost, material, (m) => {
+                const name = m.material || "Filament";
+                return `${name}, ${m.grams}g × ${m.pricePerKg} ${currency}/kg`;
+            }, currency, "Brak danych o materiale");
 
-            // --- MARŻA ---
-            updateRow('costMargin', 'descMargin', costs.margin, metaDetails, (d) => {
-                // W Twoim JSON jest 'marginPercent'
-                return `Narzut ${d.marginPercent}%`;
+            // 3. Energia
+            // UWAGA: W Twoim JSON klucz to 'energyPerH', a nie 'ratePerH'
+            updateRow('costEnergy', 'descEnergy', breakdown.energyCost, energy, (e) => {
+                return `Wg stawki ${e.energyPerH} ${currency}/h`;
+            }, currency, "Brak danych o energii");
+
+            // 4. Marża
+            // UWAGA: W Twoim JSON jest to w obiekcie 'meta', a klucz to 'marginPercent'
+            updateRow('costMargin', 'descMargin', breakdown.margin, meta, (m) => {
+                return `Narzut ${m.marginPercent}%`;
             }, currency, "Marża serwisu");
 
+            // Pokazujemy gotową kartę
             document.getElementById('quoteResult').style.display = 'block';
         }
 
+        // Funkcja pomocnicza: aktualizuje cenę i opis
         function updateRow(costId, descId, costValue, detailsObj, formatFn, currency, defaultLabel) {
-            // Ustawienie ceny
+            // Zawsze wpisujemy cenę (nawet jak brakuje detali)
             document.getElementById(costId).innerText = formatMoney(costValue, currency);
 
             const descElement = document.getElementById(descId);
 
-            // Jeśli mamy obiekt ze szczegółami
+            // Jeśli mamy obiekt ze szczegółami, formatujemy go
             if (detailsObj) {
                 descElement.innerText = formatFn(detailsObj);
                 descElement.style.color = "#718096"; // Szary
-                descElement.style.fontStyle = "normal";
             } else {
-                // Brak szczegółów
-                descElement.innerText = defaultLabel;
-                descElement.style.color = "#a0aec0";
+                // Jeśli ceny są > 0 ale brakuje detali, dajemy znać (dla debugu lub info)
+                if (parseFloat(costValue) > 0) {
+                    descElement.innerText = "Brak szczegółów w API";
+                    descElement.style.color = "#e53e3e"; // Czerwony
+                } else {
+                    descElement.innerText = defaultLabel;
+                    descElement.style.color = "#a0aec0"; // Jasny szary
+                }
             }
         }
 

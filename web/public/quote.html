@@ -371,7 +371,7 @@
             document.getElementById('quoteResult').style.display = 'block';
         }
 
-        // --- POPRAWIONA FUNKCJA HISTORII ---
+        // --- ZMODYFIKOWANA FUNKCJA HISTORII (ZABEZPIECZONA) ---
         async function loadHistory(extId) {
             const historySection = document.getElementById('historySection');
             const historyJobEl = document.getElementById('history-job-id');
@@ -387,8 +387,7 @@
                 const res = await fetch(`/api/quote/${encodeURIComponent(extId)}/history`);
                 const data = await res.json();
 
-                // --- POPRAWKA TUTAJ: Dodano obsługę data.history ---
-                // Twój webhook zwraca { success: true, history: [...] }
+                // Obsługa data.history zgodnie z API
                 const quotes = data.history || data.quotes || (Array.isArray(data) ? data : []);
 
                 if (!quotes || quotes.length === 0) {
@@ -398,11 +397,21 @@
 
                 quotes.forEach(q => {
                     const tr = document.createElement('tr');
-                    const date = new Date(q.created_at);
+
+                    // Zabezpieczenie formatowania daty
+                    let dateStr = "---";
+                    if (q.created_at) {
+                        const date = new Date(q.created_at);
+                        dateStr = !isNaN(date) ? date.toLocaleString() : q.created_at;
+                    }
+
                     const total = parseFloat(q.total || 0).toFixed(2);
 
+                    // 1. Zabezpieczone wyciąganie ID
+                    const validId = q.quoteId || q.id;
+
                     tr.innerHTML = `
-                    <td>${date.toLocaleString()}</td>
+                    <td>${dateStr}</td>
                     <td>${q.status || 'new'}</td>
                     <td>${total} PLN</td>
                     <td></td> 
@@ -413,11 +422,17 @@
                     if (q.status === 'accepted') {
                         actionTd.innerHTML = '<span class="status-accepted">✔ Zaakceptowana</span>';
                     } else {
-                        const btn = document.createElement('button');
-                        btn.className = 'btn-accept';
-                        btn.innerText = 'Oznacz jako zaakceptowaną';
-                        btn.onclick = () => acceptQuote(q.quoteId || q.id, extId);
-                        actionTd.appendChild(btn);
+                        // 2. Renderuj przycisk TYLKO, jeśli mamy ID
+                        if (validId) {
+                            const btn = document.createElement('button');
+                            btn.className = 'btn-accept';
+                            btn.innerText = 'Oznacz jako zaakceptowaną';
+                            btn.onclick = () => acceptQuote(validId, extId);
+                            actionTd.appendChild(btn);
+                        } else {
+                            // Jeśli nie ma ID, pokazujemy myślnik lub info, żeby nie klikać
+                            actionTd.innerHTML = '<span style="color:#ccc; font-size:0.9em;">(Brak ID)</span>';
+                        }
                     }
 
                     tbody.appendChild(tr);
@@ -430,7 +445,14 @@
             }
         }
 
+        // --- ZMODYFIKOWANA FUNKCJA AKCEPTACJI (ZABEZPIECZONA) ---
         async function acceptQuote(quoteId, extId) {
+            // 3. Strażnik (Guard Clause) - nie puszczamy undefined do backendu
+            if (!quoteId || quoteId === 'undefined') {
+                alert('Nie można oznaczyć tej wyceny jako zaakceptowanej – brak ID rekordu.\nWygeneruj nową wycenę, żeby ją zaakceptować.');
+                return;
+            }
+
             if (!confirm('Oznaczyć tę wycenę jako zaakceptowaną?')) return;
 
             try {
@@ -440,19 +462,22 @@
                     body: JSON.stringify({ acceptedBy: 'frontend' })
                 });
 
+                if (!res.ok) {
+                    throw new Error('API error');
+                }
+
                 const data = await res.json();
 
                 if (!data.success) {
-                    alert('Nie udało się oznaczyć wyceny: ' + (data.message || 'Błąd API'));
-                    console.error(data);
-                    return;
+                    throw new Error(data.error || 'quote_accept_failed');
                 }
 
+                alert('Wycena została oznaczona jako zaakceptowana.');
                 await loadHistory(extId);
 
             } catch (err) {
-                console.error(err);
-                alert('Błąd przy oznaczaniu wyceny.');
+                console.error('quote accept error', err);
+                alert('Nie udało się oznaczyć wyceny: Błąd API');
             }
         }
 

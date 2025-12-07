@@ -165,6 +165,15 @@ app.post('/api/quote/:id/accept', async (req, res) => {
     const { id } = req.params;
     const { acceptedBy } = req.body || {};
 
+    // 1) Walidacja ID jeszcze przed n8n
+    if (!id || id === 'undefined') {
+        return res.status(400).json({
+            success: false,
+            error: 'invalid_quote_id',
+            message: 'Brak poprawnego ID wyceny (stara/testowa wycena bez rekordu w bazie).',
+        });
+    }
+
     try {
         const r = await axios.post(
             process.env.N8N_QUOTE_ACCEPT_WEBHOOK_URL,
@@ -183,6 +192,7 @@ app.post('/api/quote/:id/accept', async (req, res) => {
         });
     }
 });
+
 
 app.post('/api/admin/pricing', async (req, res) => {
     try {

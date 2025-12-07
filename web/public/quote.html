@@ -372,129 +372,100 @@
         }
 
         // --- ZMODYFIKOWANA FUNKCJA HISTORII (ZABEZPIECZONA) ---
-        async function loadHistory(jobExtId) {
-            const historySection = document.getElementById('quote-history');
-            const historyTitle = document.getElementById('history-job-label');
-            const historyBody = document.getElementById('history-body');
+        async function loadHistory(extId) {
+            const historySection = document.getElementById('historySection');
+            const historyJobEl = document.getElementById('history-job-id');
+            const tbody = document.querySelector('#quotes-history tbody');
+            const emptyMsg = document.getElementById('history-empty');
 
+            historyJobEl.textContent = extId;
+            tbody.innerHTML = '';
+            emptyMsg.style.display = 'none';
             historySection.style.display = 'block';
-            historyTitle.textContent = jobExtId || '';
 
             try {
-                const res = await fetch(`/api/quote/${encodeURIComponent(jobExtId)}/history`);
-
-                if (!res.ok) {
-                    throw new Error(`HTTP ${res.status}`);
-                }
-
+                const res = await fetch(`/api/quote/${encodeURIComponent(extId)}/history`);
                 const data = await res.json();
-                console.log('Historia (RAW):', data);
 
-                const rawQuotes = Array.isArray(data)
-                    ? data
-                    : (data.history || data.quotes || data.rows || data.items || []);
+                console.log("--- DEBUG HISTORII ---");
+                console.log("Otrzymane dane:", data);
 
-                historyBody.innerHTML = '';
+                // Próbujemy wyciągnąć tablicę z różnych miejsc
+                let rawQuotes = [];
+                if (data.history && Array.isArray(data.history)) rawQuotes = data.history;
+                else if (data.quotes && Array.isArray(data.quotes)) rawQuotes = data.quotes;
+                else if (Array.isArray(data)) rawQuotes = data;
 
-                if (!rawQuotes || rawQuotes.length === 0) {
-                    const tr = document.createElement('tr');
-                    const td = document.createElement('td');
-                    td.colSpan = 4;
-                    td.className = 'text-center text-muted';
-                    td.textContent = 'Brak wcześniejszych wycen.';
-                    tr.appendChild(td);
-                    historyBody.appendChild(tr);
+                console.log("Znaleziona tablica rekordów:", rawQuotes);
+
+                if (rawQuotes.length === 0) {
+                    emptyMsg.style.display = 'block';
                     return;
                 }
 
-                for (const item of rawQuotes) {
+                rawQuotes.forEach((item, index) => {
+                    // Rozpakowanie: jeśli item ma pole .json, użyj go, w przeciwnym razie użyj item
                     const q = item.json || item;
 
-                    // ID wyceny – bierzemy cokolwiek sensownego
-                    const quoteId =
-                        q.quoteId ||
-                        q.id ||
-                        q.quote_id ||
-                        q.q_id ||
-                        null;
+                    // Szukamy kluczy ignorując wielkość liter (np. ID vs id)
+                    const getKey = (obj, keyName) => {
+                        const key = Object.keys(obj).find(k => k.toLowerCase() === keyName.toLowerCase());
+                        return key ? obj[key] : undefined;
+                    };
 
-                    // Data utworzenia
-                    const createdRaw =
-                        q.created_at ||
-                        q.createdAt ||
-                        q.q_created_at ||
-                        q.created ||
-                        null;
+                    const valId = getKey(q, 'id') || getKey(q, 'quoteid') || getKey(q, 'uuid');
+                    const valDate = getKey(q, 'created_at') || getKey(q, 'createdat') || getKey(q, 'date');
+                    const valStatus = getKey(q, 'status') || 'new';
+                    const valTotal = getKey(q, 'total') || 0;
+                    const valCurrency = getKey(q, 'currency') || 'PLN';
 
-                    let createdText = '---';
-                    if (createdRaw) {
-                        const d = new Date(createdRaw);
-                        if (!Number.isNaN(d.getTime())) {
-                            createdText = d.toLocaleString('pl-PL', {
-                                dateStyle: 'short',
-                                timeStyle: 'short',
-                            });
+                    // Logowanie problemów dla konkretnego wiersza
+                    if (!valId) console.warn(`Wiersz #${index}: Brak ID! Dostępne klucze:`, Object.keys(q));
+                    if (!valDate) console.warn(`Wiersz #${index}: Brak DATY!`);
+
+                    const tr = document.createElement('tr');
+
+                    // Data
+                    let dateStr = "---";
+                    if (valDate) {
+                        const date = new Date(valDate);
+                        dateStr = !isNaN(date) ? date.toLocaleString() : valDate;
+                    }
+
+                    // Cena
+                    const totalStr = parseFloat(valTotal).toFixed(2);
+
+                    tr.innerHTML = `
+                    <td>${dateStr}</td>
+                    <td>${valStatus}</td>
+                    <td>${totalStr} ${valCurrency}</td>
+                    <td></td> 
+                    `;
+
+                    const actionTd = tr.lastElementChild;
+
+                    if (valStatus === 'accepted') {
+                        actionTd.innerHTML = '<span class="status-accepted">✔ Zaakceptowana</span>';
+                    } else {
+                        if (valId) {
+                            const btn = document.createElement('button');
+                            btn.className = 'btn-accept';
+                            btn.innerText = 'Oznacz jako zaakceptowaną';
+                            btn.onclick = () => acceptQuote(valId, extId);
+                            actionTd.appendChild(btn);
+                        } else {
+                            // Tu jest przyczyna braku akcji - brak ID
+                            actionTd.innerHTML = '<span style="color:#ccc; font-size:0.8em;">(Błąd danych: brak ID)</span>';
                         }
                     }
 
-                    // Status
-                    const status = q.status || q.quote_status || 'new';
+                    tbody.appendChild(tr);
+                });
 
-                    // Suma
-                    const totalRaw =
-                        q.total ??
-                        q.total_amount ??
-                        q.sum ??
-                        q.line_total ??
-                        0;
-
-                    const totalNumber = Number(totalRaw) || 0;
-                    const totalText = `${totalNumber.toFixed(2)} PLN`;
-
-                    // Budowanie wiersza
-                    const tr = document.createElement('tr');
-
-                    const dateTd = document.createElement('td');
-                    dateTd.textContent = createdText;
-                    tr.appendChild(dateTd);
-
-                    const statusTd = document.createElement('td');
-                    statusTd.textContent = status;
-                    tr.appendChild(statusTd);
-
-                    const totalTd = document.createElement('td');
-                    totalTd.textContent = totalText;
-                    tr.appendChild(totalTd);
-
-                    const actionTd = document.createElement('td');
-
-                    if (!quoteId) {
-                        actionTd.className = 'text-muted';
-                        actionTd.textContent = 'Brak ID (stara wycena)';
-                    } else if (status === 'accepted') {
-                        actionTd.className = 'text-muted';
-                        actionTd.textContent = 'Zaakceptowana';
-                    } else {
-                        const btn = document.createElement('button');
-                        btn.className = 'btn btn-sm btn-success';
-                        btn.textContent = 'Oznacz jako zaakceptowaną';
-                        btn.onclick = () => acceptQuote(quoteId, jobExtId);
-                        actionTd.appendChild(btn);
-                    }
-
-                    tr.appendChild(actionTd);
-                    historyBody.appendChild(tr);
-                }
             } catch (err) {
-                console.error('Błąd ładowania historii:', err);
-                historyBody.innerHTML = '';
-                const tr = document.createElement('tr');
-                const td = document.createElement('td');
-                td.colSpan = 4;
-                td.className = 'text-center text-danger';
-                td.textContent = 'Nie udało się pobrać historii wycen.';
-                tr.appendChild(td);
-                historyBody.appendChild(tr);
+                console.error("CRITICAL ERROR w loadHistory:", err);
+                emptyMsg.innerText = "Błąd pobierania historii.";
+                emptyMsg.style.display = 'block';
             }
         }
 

@@ -385,14 +385,24 @@
 
             try {
                 const res = await fetch(`/api/quote/${encodeURIComponent(extId)}/history`);
-                const data = await res.json();
+                let data = await res.json(); // Używamy let, żeby móc nadpisać
 
-                console.log("Otrzymane dane:", data); // Debug
+                console.log("Surowe dane z serwera:", data);
 
-                // 1. POPRAWKA: Celujemy dokładnie w tablicę 'quotes' z Twojego screena
+                // --- POPRAWKA KLUCZOWA ---
+                // n8n często zwraca dane w tablicy [ { success: true, quotes: [...] } ]
+                // Jeśli data jest tablicą, bierzemy jej pierwszy element.
+                if (Array.isArray(data)) {
+                    data = data[0];
+                }
+                // -------------------------
+
+                console.log("Dane po 'rozpakowaniu':", data);
+
+                // Teraz data.quotes będzie już widoczne
                 const quotesList = data.quotes || [];
 
-                if (quotesList.length === 0) {
+                if (!quotesList || quotesList.length === 0) {
                     emptyMsg.style.display = 'block';
                     return;
                 }
@@ -400,9 +410,7 @@
                 quotesList.forEach(q => {
                     const tr = document.createElement('tr');
 
-                    // 2. POPRAWKA: Mapujemy pola dokładnie tak, jak są w Twoim JSON (z małej litery)
-                    // JSON: { "id": "...", "created_at": "...", "total": 319.46, "status": "draft" }
-
+                    // Bezpieczne parsowanie daty
                     let dateStr = "---";
                     if (q.created_at) {
                         const date = new Date(q.created_at);
@@ -412,6 +420,7 @@
                     const total = parseFloat(q.total || 0).toFixed(2);
                     const currentStatus = q.status || 'new';
 
+                    // Budowanie HTML wiersza
                     tr.innerHTML = `
                     <td>${dateStr}</td>
                     <td>${currentStatus}</td>
@@ -421,9 +430,9 @@
 
                     const actionTd = tr.lastElementChild;
 
-                    // 3. POPRAWKA: Logika przycisku
-                    // Jeśli status to 'accepted', pokazujemy ptaszka.
-                    // W każdym innym przypadku (np. 'draft', 'new') pokazujemy przycisk, O ILE mamy ID.
+                    // Logika przycisku:
+                    // 1. Jeśli zaakceptowana -> pokaż status
+                    // 2. Jeśli inna (np. draft, new) -> pokaż przycisk, ALE TYLKO GDY MAMY ID
                     if (currentStatus === 'accepted') {
                         actionTd.innerHTML = '<span class="status-accepted">✔ Zaakceptowana</span>';
                     } else {
@@ -435,9 +444,9 @@
                             btn.onclick = () => acceptQuote(q.id, extId);
                             actionTd.appendChild(btn);
                         } else {
-                            // Jeśli jakimś cudem ID jest puste
-                            console.warn("Wiersz bez ID:", q);
-                            actionTd.innerHTML = '<span style="color:#ccc; font-size:0.8em;">(Błąd: brak ID)</span>';
+                            // Jeśli n8n zwróci rekord bez ID (np. błąd SQL)
+                            console.warn("Rekord bez ID:", q);
+                            actionTd.innerHTML = '<span style="color:#ccc; font-size:0.8em;">(Brak ID)</span>';
                         }
                     }
 
@@ -450,7 +459,6 @@
                 emptyMsg.style.display = 'block';
             }
         }
-
         // --- ZMODYFIKOWANA FUNKCJA AKCEPTACJI (ZABEZPIECZONA) ---
         async function acceptQuote(quoteId, jobExtId) {
             if (!quoteId) {

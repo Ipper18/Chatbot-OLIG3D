@@ -1,3 +1,5 @@
+const multer = require('multer');
+const FormData = require('form-data');
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
@@ -9,7 +11,8 @@ const N8N_CHAT_URL = process.env.N8N_CHAT_WEBHOOK_URL;
 const N8N_QUOTE_URL = process.env.N8N_QUOTE_WEBHOOK_URL;
 const client = require('prom-client');
 client.collectDefaultMetrics(); // zbiera CPU, RAM, GC itd.   
-
+const upload = multer();
+const GEOMETRY_URL = process.env.GEOMETRY_URL || 'http://localhost:8000';
 
 
 function basicAuth(req, res, next) {
@@ -217,6 +220,44 @@ app.post('/api/admin/pricing', async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'pricing_save_failed',
+        });
+    }
+});
+
+// Analiza STL/OBJ – proxy do geometry-service
+app.post('/api/model/analyze', upload.single('file'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({
+            success: false,
+            error: 'no_file',
+            message: 'Wyślij plik STL/OBJ w polu "file".',
+        });
+    }
+
+    try {
+        const form = new FormData();
+        form.append('file', req.file.buffer, {
+            filename: req.file.originalname,
+            contentType: req.file.mimetype || 'application/octet-stream',
+        });
+
+        const response = await axios.post(
+            `${GEOMETRY_URL}/analyze`,
+            form,
+            { headers: form.getHeaders(), timeout: 30000 },
+        );
+
+        // Możesz tutaj od razu zapisać to później w DB lub odesłać do frontu
+        res.json({
+            success: true,
+            data: response.data,
+        });
+    } catch (err) {
+        console.error('Error /api/model/analyze', err.response?.data || err.message);
+        res.status(502).json({
+            success: false,
+            error: 'geometry_error',
+            message: 'Błąd analizy modelu 3D.',
         });
     }
 });

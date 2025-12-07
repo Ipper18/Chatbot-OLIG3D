@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Analiza modelu 3D – OLIG3D</title>
+    <link rel="stylesheet" href="/styles.css" />
+</head>
+
+<body>
+    <main class="container">
+        <h1>Analiza modelu 3D</h1>
+
+        <form id="analyze-form">
+            <label>
+                Plik STL/OBJ:
+                <input type="file" name="file" id="file-input" accept=".stl,.obj" required />
+            </label>
+
+            <button type="submit">Przeanalizuj</button>
+        </form>
+
+        <pre id="result" style="margin-top: 1rem;"></pre>
+    </main>
+
+    <script>
+        const form = document.getElementById('analyze-form');
+        const result = document.getElementById('result');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('file-input');
+
+            if (!fileInput.files[0]) {
+                alert('Wybierz plik.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            result.textContent = 'Przetwarzanie...';
+
+            try {
+                const res = await fetch('/api/model/analyze', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const data = await res.json();
+                result.textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+                console.error(err);
+                result.textContent = 'Błąd podczas analizy.';
+            }
+        });
+    </script>
+</body>
+
+</html>

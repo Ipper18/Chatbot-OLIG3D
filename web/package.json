@@ -1,6 +1,7 @@
 {
     "name": "olig3d-web",
     "private": true,
+    "type": "commonjs",
     "scripts": {
         "start": "node server.js"
     },
@@ -12,6 +13,8 @@
         "express": "^5.2.1",
         "fastify": "^4.28.0",
         "prom-client": "^15.1.2",
-        "undici": "^6.19.8"
+        "undici": "^6.19.8",
+        "multer": "^1.4.5-lts.1",
+        "form-data": "^4.0.0"
     }
 }

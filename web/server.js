@@ -58,17 +58,23 @@ async function analyzeGeometryWithFastAPI(file) {
     });
 
     const raw = response.data || {};
-    const bbox = raw.bounding_box || raw.bbox || {};
+
+    // FIX: Obsługa różnych nazw kluczy z Pythona (bbox_mm, bounding_box, bbox)
+    const bbox = raw.bounding_box || raw.bbox || raw.bbox_mm || {};
+
+    // Wyciągnięcie wysokości jeśli brak wprost w raw
     const heightFromBox =
-        bbox.z && Array.isArray(bbox.z) && bbox.z.length === 2
-            ? bbox.z[1] - bbox.z[0]
+        bbox && Array.isArray(bbox) && bbox.length === 2
+            ? bbox[1][2] - bbox[0][2]
             : undefined;
 
     return {
         ...raw,
-        volume_cm3: raw.volume_cm3 ?? (raw.volume_mm3 ? raw.volume_mm3 / 1000 : undefined),
+        volume_cm3: raw.volume_cm3 ?? (raw.volume_mm3 ? raw.volume_mm3 / 1000 : 0),
         bounding_box: bbox,
-        height_mm: raw.height_mm ?? heightFromBox ?? null,
+        // Przekazujemy wymiary jeśli są, w przeciwnym razie null
+        dimensions_mm: raw.dimensions_mm || null,
+        height_mm: raw.height_mm ?? heightFromBox ?? 0,
     };
 }
 
@@ -305,28 +311,28 @@ app.post('/api/quote-from-stl', upload.single('model'), async (req, res) => {
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        // 1. Analiza geometrii przez FastAPI (wspólny helper)
+        // 1. Analiza geometrii
         const geometry = await analyzeGeometryWithFastAPI(req.file);
 
-        // 2. Wywołanie dedykowanego webhooka n8n do wyceny ze STL
+        // 2. Wywołanie n8n
         const n8nUrl =
             process.env.N8N_QUOTE_FROM_STL_WEBHOOK_URL ||
-            process.env.N8N_QUOTE_WEBHOOK_URL; // fallback, gdybyś chciał chwilowo użyć starego workflow
+            process.env.N8N_QUOTE_WEBHOOK_URL;
 
         if (!n8nUrl) {
             return res.status(500).json({ error: 'n8n quote webhook URL not configured' });
         }
 
+        // FIX: Przekazujemy dimensions_mm do payloadu n8n
         const payload = {
             geometry: {
                 volume_cm3: geometry.volume_cm3,
                 height_mm: geometry.height_mm,
                 bounding_box: geometry.bounding_box,
+                dimensions_mm: geometry.dimensions_mm // <--- KLUCZOWE: przekazanie wymiarów
             },
+            filename: req.file.originalname, // Przekazujemy też nazwę pliku
             material: req.body.material || 'PLA',
-            quality: req.body.quality || null,
-            infill: req.body.infill || null,
-            color: req.body.color || null,
             source: 'stl',
         };
 

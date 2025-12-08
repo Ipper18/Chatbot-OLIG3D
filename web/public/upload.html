@@ -326,22 +326,21 @@
             fd.append('material', material);
 
             try {
-                // Wywołanie Twojego endpointu w server.js
+                // Wywołanie endpointu
                 const res = await fetch('/api/quote-from-stl', { method: 'POST', body: fd });
 
-                // Obsługa błędów HTTP
                 if (!res.ok) {
                     const errData = await res.json().catch(() => ({}));
                     throw new Error(errData.details || errData.error || `Błąd serwera: ${res.status}`);
                 }
 
                 const data = await res.json();
+                console.log("Response from server:", data); // Debug w konsoli przeglądarki
 
                 if (!data.success) {
                     throw new Error(data.error || "Nieznany błąd wyceny");
                 }
 
-                console.log("Dane z serwera:", data);
                 renderSuccess(data);
 
             } catch (err) {
@@ -354,24 +353,38 @@
         });
 
         function renderSuccess(data) {
-            // Pobieramy obiekt quote z odpowiedzi n8n
-            const q = data.quote || {};
+            // KLUCZOWA POPRAWKA:
+            // Pobieramy dane dokładnie wg struktury JSON, którą wkleiłeś w wiadomości
+            const q = data.quote;
+
+            if (!q) {
+                showError("Otrzymano pustą wycenę od serwera.");
+                return;
+            }
+
             const bd = q.breakdown || {};
+            const mat = q.material || {};
+            const timeInfo = q.time || {};
 
             // 1. Nagłówek
             document.getElementById('res-job-id').innerText = q.jobExtId || "Brak ID";
             document.getElementById('res-total').innerText = formatMoney(q.total);
 
             // 2. Tabela parametrów
-            document.getElementById('res-material').innerText = q.material?.material || document.getElementById('material-input').value;
-            document.getElementById('res-weight').innerText = (q.material?.grams || 0).toFixed(1) + " g";
+            // Materiał jest teraz w q.material.material
+            document.getElementById('res-material').innerText = mat.material || "Nieznany";
 
-            // Czas: Preferujemy sformatowany hh:mm:ss, ale jak nie ma to minuty
-            const timeStr = q.time?.hhmmss || (q.time?.minutes ? q.time.minutes + " min" : "---");
-            document.getElementById('res-time').innerText = timeStr;
+            // Waga jest teraz w q.material.grams
+            document.getElementById('res-weight').innerText = (Number(mat.grams) || 0).toFixed(2) + " g";
 
+            // Czas jest teraz w q.time.hhmmss
+            document.getElementById('res-time').innerText = timeInfo.hhmmss || "---";
+
+            // Wymiary są bezpośrednio w quote.dimensions
             document.getElementById('res-dims').innerText = q.dimensions || "Brak danych";
-            document.getElementById('res-vol').innerText = (q.volume || 0).toFixed(2) + " cm³";
+
+            // Objętość jest bezpośrednio w quote.volume
+            document.getElementById('res-vol').innerText = (Number(q.volume) || 0).toFixed(2) + " cm³";
 
             // 3. Rozbicie kosztów (Breakdown)
             document.getElementById('bd-material').innerText = formatMoney(bd.materialCost);

@@ -262,3 +262,7 @@ app.post('/api/model/analyze', upload.single('file'), async (req, res) => {
         });
     }
 });
+
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok' });
+});

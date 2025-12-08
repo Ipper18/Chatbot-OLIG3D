@@ -47,3 +47,7 @@ async def analyze_model(file: UploadFile = File(...)):
         "overhang_index": overhang_index,
         "thin_wall_index": thin_wall_index,
     }
+    
+@app.get("/health")
+def health():
+    return {"status": "ok"}

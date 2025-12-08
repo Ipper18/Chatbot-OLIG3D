@@ -7,19 +7,29 @@
     <title>Wycena modelu 3D – OLIG3D</title>
     <link rel="stylesheet" href="/styles.css" />
     <style>
-        /* Prosty styl dla czytelności wyników */
         .result-box {
             background: #f4f4f4;
-            padding: 1rem;
+            padding: 1.5rem;
             border-radius: 8px;
-            margin-top: 1rem;
+            margin-top: 1.5rem;
             border: 1px solid #ddd;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
         }
 
         .price-tag {
-            font-size: 1.5rem;
+            font-size: 2rem;
             color: #2e7d32;
             font-weight: bold;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .quote-id {
+            font-size: 0.8rem;
+            color: #888;
+            font-family: monospace;
+            margin-bottom: 1rem;
+            display: block;
         }
 
         .error {
@@ -27,11 +37,28 @@
             background: #ffebee;
             padding: 1rem;
             border-radius: 4px;
+            margin-top: 1rem;
         }
 
         .loading {
             color: #0288d1;
             font-weight: bold;
+            margin-top: 1rem;
+        }
+
+        ul.details-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        ul.details-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        ul.details-list li:last-child {
+            border-bottom: none;
         }
     </style>
 </head>
@@ -42,20 +69,20 @@
 
         <form id="quote-form">
             <div style="margin-bottom: 1rem;">
-                <label style="display:block; margin-bottom: 0.5rem;">Wybierz plik (STL/OBJ):</label>
+                <label style="display:block; margin-bottom: 0.5rem; font-weight: bold;">Wybierz plik (STL/OBJ):</label>
                 <input type="file" name="model" id="file-input" accept=".stl,.obj" required />
             </div>
 
             <div style="margin-bottom: 1rem;">
-                <label style="display:block; margin-bottom: 0.5rem;">Materiał:</label>
-                <select name="material" id="material-input">
+                <label style="display:block; margin-bottom: 0.5rem; font-weight: bold;">Materiał:</label>
+                <select name="material" id="material-input" style="padding: 0.5rem; width: 100%; max-width: 300px;">
                     <option value="PLA">PLA</option>
                     <option value="PETG">PETG</option>
                     <option value="ABS">ABS</option>
                 </select>
             </div>
 
-            <button type="submit">Przeanalizuj i wyceń</button>
+            <button type="submit" style="padding: 0.7rem 1.5rem; cursor: pointer;">Przeanalizuj i wyceń</button>
         </form>
 
         <div id="result-container"></div>
@@ -71,7 +98,7 @@
             e.preventDefault();
 
             // Reset widoku
-            resultContainer.innerHTML = '<p class="loading">Trwa przesyłanie, analiza geometrii i kalkulacja w n8n...</p>';
+            resultContainer.innerHTML = '<p class="loading">Trwa przesyłanie, analiza geometrii i kalkulacja...</p>';
 
             const file = fileInput.files[0];
             if (!file) {
@@ -80,13 +107,10 @@
             }
 
             const fd = new FormData();
-            // Klucz 'model' jest wymagany przez Twój backend (multer)
             fd.append('model', file);
-            // Przekazujemy też materiał
             fd.append('material', materialInput.value);
 
             try {
-                // Uderzamy w endpoint, który robi analizę ORAZ woła webhook n8n
                 const res = await fetch('/api/quote-from-stl', {
                     method: 'POST',
                     body: fd
@@ -98,55 +122,55 @@
                 }
 
                 const data = await res.json();
-                console.log("Otrzymane dane:", data);
+                console.log("Otrzymane dane:", data); // Debug w konsoli przeglądarki
 
                 renderSuccess(data);
 
             } catch (err) {
                 console.error(err);
                 resultContainer.innerHTML = `<div class="error">
-                    <strong>Błąd wyceny:</strong><br>
+                    <strong>Wystąpił błąd:</strong><br>
                     ${err.message}
                 </div>`;
             }
         });
 
         function renderSuccess(data) {
-            // Dane z geometrii (z FastAPI)
+            // 1. Dane geometryczne (z FastAPI)
             const geo = data.geometry || {};
 
-            // Dane z wyceny (z n8n)
-            // n8n zwykle zwraca tablicę obiektów [{ json: {...} }]
-            // Zakładamy strukturę z Twojego poprzedniego promptu (node Code)
-            const n8nItem = (data.quote && data.quote[0]) ? data.quote[0] : {};
-            const n8nJson = n8nItem.json || {}; // Główny payload z n8n
+            // 2. Dane wyceny (z n8n - obiekt "quote" ze zrzutu ekranu)
+            const quote = data.quote || {};
 
-            // Pobieramy wartości z n8n (jeśli istnieją) lub fallbaki
-            const price = n8nJson.total_price || n8nJson.total || 0;
-            const time = n8nJson.production?.time_formatted || n8nJson.time_hhmmss || "---";
-            const weight = n8nJson.production?.weight_g || n8nJson.weight_g || 0;
+            // Mapowanie pól zgodnie z Twoim zrzutem JSON
+            const price = quote.total !== undefined ? Number(quote.total).toFixed(2) : "0.00";
+            const time = quote.time && quote.time.hhmmss ? quote.time.hhmmss : "---";
+            const weight = quote.material && quote.material.grams ? Number(quote.material.grams).toFixed(1) : "0";
+            const quoteId = quote.quoteId || "---";
+            const materialUsed = quote.material && quote.material.material ? quote.material.material : materialInput.value;
+
+            // Wyliczanie wymiarów
+            let dimStr = "Brak danych";
+            if (geo.bounding_box) {
+                const x = Math.round(geo.bounding_box.x?.[1] - geo.bounding_box.x?.[0]);
+                const y = Math.round(geo.bounding_box.y?.[1] - geo.bounding_box.y?.[0]);
+                const z = Math.round(geo.height_mm || 0);
+                if (!isNaN(x)) dimStr = `${x} x ${y} x ${z} mm`;
+            }
 
             resultContainer.innerHTML = `
                 <div class="result-box">
-                    <h2>Wynik wyceny</h2>
+                    <h2>Wynik kalkulacji</h2>
+                    <span class="quote-id">ID: ${quoteId}</span>
                     
-                    <div style="margin-bottom: 1rem;">
-                        <span class="price-tag">Cena: ${Number(price).toFixed(2)} PLN</span>
-                    </div>
+                    <span class="price-tag">${price} PLN</span>
 
-                    <ul style="line-height: 1.6;">
-                        <li><strong>Materiał:</strong> ${materialInput.value}</li>
-                        <li><strong>Waga wydruku:</strong> ${Number(weight).toFixed(1)} g</li>
-                        <li><strong>Szacowany czas:</strong> ${time}</li>
-                        <hr>
-                        <li><strong>Wymiary (FastAPI):</strong> 
-                            ${geo.bounding_box ?
-                    `ok. ${Math.round(geo.bounding_box.x?.[1] - geo.bounding_box.x?.[0])} x 
-                                     ${Math.round(geo.bounding_box.y?.[1] - geo.bounding_box.y?.[0])} x 
-                                     ${Math.round(geo.height_mm)} mm`
-                    : 'Brak danych'}
-                        </li>
-                        <li><strong>Objętość (FastAPI):</strong> ${geo.volume_cm3 ? geo.volume_cm3.toFixed(2) : 0} cm³</li>
+                    <ul class="details-list">
+                        <li><strong>Wybrany materiał:</strong> ${materialUsed}</li>
+                        <li><strong>Waga wydruku:</strong> ${weight} g</li>
+                        <li><strong>Szacowany czas druku:</strong> ${time}</li>
+                        <li><strong>Wymiary (bbox):</strong> ${dimStr}</li>
+                        <li><strong>Objętość modelu:</strong> ${geo.volume_cm3 ? Number(geo.volume_cm3).toFixed(2) : 0} cm³</li>
                     </ul>
                 </div>
             `;

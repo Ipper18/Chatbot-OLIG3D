@@ -6,6 +6,7 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
 const N8N_URL = process.env.N8N_WEBHOOK_URL;
 const N8N_CHAT_URL = process.env.N8N_CHAT_WEBHOOK_URL;
 const N8N_QUOTE_URL = process.env.N8N_QUOTE_WEBHOOK_URL;
@@ -160,8 +161,8 @@ app.get('/admin-pricing', basicAuth, (_req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-pricing.html'));
 });
 
-app.listen(PORT, () => {
-    console.log(`OLIG3D listening on :${PORT}`);
+app.listen(PORT, HOST, () => {
+    console.log(`OLIG3D backend listening on http://${HOST}:${PORT}`);
 });
 
 app.post('/api/quote/:id/accept', async (req, res) => {

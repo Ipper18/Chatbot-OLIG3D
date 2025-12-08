@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-# Start geometry-service (FastAPI) w tle
-python3 -m uvicorn services.geometry.main:app \
-  --host 0.0.0.0 \
-  --port 8000 &
+echo "[START] geometry-service + Node backend"
 
-# Start backendu Node/Express
-node web/server.js
+# 1) startujemy geometry-service w tle
+uvicorn services.geometry.main:app --host 0.0.0.0 --port 8000 &
+GEOM_PID=$!
+echo "[INFO] geometry-service pid=$GEOM_PID"
+
+# 2) uruchamiamy Node jako główny proces kontenera
+echo "[INFO] starting Node server"
+exec node web/server.js

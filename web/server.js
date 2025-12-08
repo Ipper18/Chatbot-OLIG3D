@@ -13,7 +13,10 @@ const N8N_CHAT_URL = process.env.N8N_CHAT_WEBHOOK_URL;
 const N8N_QUOTE_URL = process.env.N8N_QUOTE_WEBHOOK_URL;
 const client = require('prom-client');
 client.collectDefaultMetrics(); // zbiera CPU, RAM, GC itd.   
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 50 * 1024 * 1024 },
+});
 const GEOMETRY_URL = process.env.GEOMETRY_URL || 'http://localhost:8000';
 
 
@@ -31,6 +34,42 @@ function basicAuth(req, res, next) {
     }
 
     next();
+}
+
+async function analyzeGeometryWithFastAPI(file) {
+    if (!file) {
+        const error = new Error('No model file uploaded');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const base = (process.env.GEOMETRY_URL || 'http://localhost:8000').replace(/\/+$/, '');
+    const url = `${base}/analyze`;
+
+    const form = new FormData();
+    form.append('file', file.buffer, {
+        filename: file.originalname || 'model.stl',
+        contentType: file.mimetype || 'application/octet-stream',
+    });
+
+    const response = await axios.post(url, form, {
+        headers: form.getHeaders(),
+        timeout: 30000,
+    });
+
+    const raw = response.data || {};
+    const bbox = raw.bounding_box || raw.bbox || {};
+    const heightFromBox =
+        bbox.z && Array.isArray(bbox.z) && bbox.z.length === 2
+            ? bbox.z[1] - bbox.z[0]
+            : undefined;
+
+    return {
+        ...raw,
+        volume_cm3: raw.volume_cm3 ?? (raw.volume_mm3 ? raw.volume_mm3 / 1000 : undefined),
+        bounding_box: bbox,
+        height_mm: raw.height_mm ?? heightFromBox ?? null,
+    };
 }
 
 app.use('/api/admin', basicAuth);
@@ -227,39 +266,26 @@ app.post('/api/admin/pricing', async (req, res) => {
 });
 
 // Analiza STL/OBJ – proxy do geometry-service
-app.post('/api/model/analyze', upload.single('file'), async (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({
-            success: false,
-            error: 'no_file',
-            message: 'Wyślij plik STL/OBJ w polu "file".',
-        });
-    }
-
+app.post('/api/model/analyze', upload.single('model'), async (req, res) => {
     try {
-        const form = new FormData();
-        form.append('file', req.file.buffer, {
-            filename: req.file.originalname,
-            contentType: req.file.mimetype || 'application/octet-stream',
-        });
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
 
-        const response = await axios.post(
-            `${GEOMETRY_URL}/analyze`,
-            form,
-            { headers: form.getHeaders(), timeout: 30000 },
-        );
+        const geometry = await analyzeGeometryWithFastAPI(req.file);
 
-        // Możesz tutaj od razu zapisać to później w DB lub odesłać do frontu
-        res.json({
+        return res.json({
             success: true,
-            data: response.data,
+            filename: req.file.originalname,
+            size: req.file.size,
+            geometry,
         });
     } catch (err) {
-        console.error('Error /api/model/analyze', err.response?.data || err.message);
-        res.status(502).json({
-            success: false,
-            error: 'geometry_error',
-            message: 'Błąd analizy modelu 3D.',
+        console.error('Geometry analyze error:', err.response?.data || err.message);
+        const status = err.statusCode || err.response?.status || 500;
+        return res.status(status).json({
+            error: 'Geometry analysis failed',
+            details: err.response?.data || err.message,
         });
     }
 });
@@ -271,3 +297,53 @@ app.get('/health', (req, res) => {
 app.get('/upload', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'upload.html'));
 });
+
+
+app.post('/api/quote-from-stl', upload.single('model'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        // 1. Analiza geometrii przez FastAPI (wspólny helper)
+        const geometry = await analyzeGeometryWithFastAPI(req.file);
+
+        // 2. Wywołanie dedykowanego webhooka n8n do wyceny ze STL
+        const n8nUrl =
+            process.env.N8N_QUOTE_FROM_STL_WEBHOOK_URL ||
+            process.env.N8N_QUOTE_WEBHOOK_URL; // fallback, gdybyś chciał chwilowo użyć starego workflow
+
+        if (!n8nUrl) {
+            return res.status(500).json({ error: 'n8n quote webhook URL not configured' });
+        }
+
+        const payload = {
+            geometry: {
+                volume_cm3: geometry.volume_cm3,
+                height_mm: geometry.height_mm,
+                bounding_box: geometry.bounding_box,
+            },
+            material: req.body.material || 'PLA',
+            quality: req.body.quality || null,
+            infill: req.body.infill || null,
+            color: req.body.color || null,
+            source: 'stl',
+        };
+
+        const { data: quote } = await axios.post(n8nUrl, payload, { timeout: 30000 });
+
+        return res.json({
+            success: true,
+            geometry,
+            quote,
+        });
+    } catch (err) {
+        console.error('Quote from STL error:', err.response?.data || err.message);
+        const status = err.response?.status || 500;
+        return res.status(status).json({
+            error: 'Quote from STL failed',
+            details: err.response?.data || err.message,
+        });
+    }
+});
+

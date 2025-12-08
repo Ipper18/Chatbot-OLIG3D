@@ -3,62 +3,154 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Analiza modelu 3D – OLIG3D</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wycena modelu 3D – OLIG3D</title>
     <link rel="stylesheet" href="/styles.css" />
+    <style>
+        /* Prosty styl dla czytelności wyników */
+        .result-box {
+            background: #f4f4f4;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            border: 1px solid #ddd;
+        }
+
+        .price-tag {
+            font-size: 1.5rem;
+            color: #2e7d32;
+            font-weight: bold;
+        }
+
+        .error {
+            color: #d32f2f;
+            background: #ffebee;
+            padding: 1rem;
+            border-radius: 4px;
+        }
+
+        .loading {
+            color: #0288d1;
+            font-weight: bold;
+        }
+    </style>
 </head>
 
 <body>
     <main class="container">
-        <h1>Analiza modelu 3D</h1>
+        <h1>Wycena modelu 3D (STL)</h1>
 
-        <form id="analyze-form">
-            <label>
-                Plik STL/OBJ:
-                <input type="file" name="file" id="file-input" accept=".stl,.obj" required />
-            </label>
+        <form id="quote-form">
+            <div style="margin-bottom: 1rem;">
+                <label style="display:block; margin-bottom: 0.5rem;">Wybierz plik (STL/OBJ):</label>
+                <input type="file" name="model" id="file-input" accept=".stl,.obj" required />
+            </div>
 
-            <button type="submit">Przeanalizuj</button>
+            <div style="margin-bottom: 1rem;">
+                <label style="display:block; margin-bottom: 0.5rem;">Materiał:</label>
+                <select name="material" id="material-input">
+                    <option value="PLA">PLA</option>
+                    <option value="PETG">PETG</option>
+                    <option value="ABS">ABS</option>
+                </select>
+            </div>
+
+            <button type="submit">Przeanalizuj i wyceń</button>
         </form>
 
-        <pre id="result" style="margin-top: 1rem;"></pre>
+        <div id="result-container"></div>
     </main>
 
     <script>
-        const form = document.getElementById('upload-form');
-        const fileInput = document.getElementById('stl-file');
-        const resultDiv = document.getElementById('result');
+        const form = document.getElementById('quote-form');
+        const fileInput = document.getElementById('file-input');
+        const materialInput = document.getElementById('material-input');
+        const resultContainer = document.getElementById('result-container');
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            resultDiv.textContent = 'Liczenie...';
+
+            // Reset widoku
+            resultContainer.innerHTML = '<p class="loading">Trwa przesyłanie, analiza geometrii i kalkulacja w n8n...</p>';
 
             const file = fileInput.files[0];
             if (!file) {
-                resultDiv.textContent = 'Wybierz plik STL.';
+                resultContainer.innerHTML = '<p class="error">Wybierz plik STL.</p>';
                 return;
             }
 
             const fd = new FormData();
+            // Klucz 'model' jest wymagany przez Twój backend (multer)
             fd.append('model', file);
+            // Przekazujemy też materiał
+            fd.append('material', materialInput.value);
 
             try {
-                const res = await fetch('/api/model/analyze', {
+                // Uderzamy w endpoint, który robi analizę ORAZ woła webhook n8n
+                const res = await fetch('/api/quote-from-stl', {
                     method: 'POST',
                     body: fd
                 });
+
                 if (!res.ok) {
-                    throw new Error('Błąd HTTP ' + res.status);
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.details || errData.error || `Błąd HTTP ${res.status}`);
                 }
+
                 const data = await res.json();
-                resultDiv.innerHTML = `
-        <p>Objętość: <b>${data.volume_cm3.toFixed(2)} cm³</b></p>
-        <p>Wysokość: <b>${data.height_mm.toFixed(2)} mm</b></p>
-      `;
+                console.log("Otrzymane dane:", data);
+
+                renderSuccess(data);
+
             } catch (err) {
                 console.error(err);
-                resultDiv.textContent = 'Błąd analizy modelu.';
+                resultContainer.innerHTML = `<div class="error">
+                    <strong>Błąd wyceny:</strong><br>
+                    ${err.message}
+                </div>`;
             }
         });
+
+        function renderSuccess(data) {
+            // Dane z geometrii (z FastAPI)
+            const geo = data.geometry || {};
+
+            // Dane z wyceny (z n8n)
+            // n8n zwykle zwraca tablicę obiektów [{ json: {...} }]
+            // Zakładamy strukturę z Twojego poprzedniego promptu (node Code)
+            const n8nItem = (data.quote && data.quote[0]) ? data.quote[0] : {};
+            const n8nJson = n8nItem.json || {}; // Główny payload z n8n
+
+            // Pobieramy wartości z n8n (jeśli istnieją) lub fallbaki
+            const price = n8nJson.total_price || n8nJson.total || 0;
+            const time = n8nJson.production?.time_formatted || n8nJson.time_hhmmss || "---";
+            const weight = n8nJson.production?.weight_g || n8nJson.weight_g || 0;
+
+            resultContainer.innerHTML = `
+                <div class="result-box">
+                    <h2>Wynik wyceny</h2>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <span class="price-tag">Cena: ${Number(price).toFixed(2)} PLN</span>
+                    </div>
+
+                    <ul style="line-height: 1.6;">
+                        <li><strong>Materiał:</strong> ${materialInput.value}</li>
+                        <li><strong>Waga wydruku:</strong> ${Number(weight).toFixed(1)} g</li>
+                        <li><strong>Szacowany czas:</strong> ${time}</li>
+                        <hr>
+                        <li><strong>Wymiary (FastAPI):</strong> 
+                            ${geo.bounding_box ?
+                    `ok. ${Math.round(geo.bounding_box.x?.[1] - geo.bounding_box.x?.[0])} x 
+                                     ${Math.round(geo.bounding_box.y?.[1] - geo.bounding_box.y?.[0])} x 
+                                     ${Math.round(geo.height_mm)} mm`
+                    : 'Brak danych'}
+                        </li>
+                        <li><strong>Objętość (FastAPI):</strong> ${geo.volume_cm3 ? geo.volume_cm3.toFixed(2) : 0} cm³</li>
+                    </ul>
+                </div>
+            `;
+        }
     </script>
 
 </body>

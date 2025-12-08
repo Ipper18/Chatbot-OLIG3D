@@ -353,14 +353,31 @@
         });
 
         function renderSuccess(data) {
-            // KLUCZOWA POPRAWKA:
-            // Pobieramy dane dokładnie wg struktury JSON, którą wkleiłeś w wiadomości
-            const q = data.quote;
+            // --- POPRAWKA STRUKTURY DANYCH ---
+
+            // 1. Pobieramy to, co przyszło z server.js
+            let q = data.quote;
+
+            // 2. Jeśli n8n zwrócił tablicę (co widać w Twoim JSON), bierzemy pierwszy element
+            if (Array.isArray(q)) {
+                q = q[0];
+            }
+
+            // 3. Sprawdzamy, czy w środku jest jeszcze jeden obiekt "quote" 
+            // (zgodnie z Twoim JSON-em: { success: true, quote: { ... } })
+            if (q && q.quote) {
+                q = q.quote;
+            }
+
+            // Teraz zmienna 'q' wskazuje już na właściwy obiekt z danymi (jobExtId, total itp.)
+            console.log("Odpakowane dane do wyświetlenia:", q);
 
             if (!q) {
-                showError("Otrzymano pustą wycenę od serwera.");
+                showError("Błąd struktury danych: brak obiektu quote.");
                 return;
             }
+
+            // --- KONIEC POPRAWKI, DALEJ BEZ ZMIAN ---
 
             const bd = q.breakdown || {};
             const mat = q.material || {};
@@ -371,19 +388,18 @@
             document.getElementById('res-total').innerText = formatMoney(q.total);
 
             // 2. Tabela parametrów
-            // Materiał jest teraz w q.material.material
             document.getElementById('res-material').innerText = mat.material || "Nieznany";
 
-            // Waga jest teraz w q.material.grams
+            // Waga
             document.getElementById('res-weight').innerText = (Number(mat.grams) || 0).toFixed(2) + " g";
 
-            // Czas jest teraz w q.time.hhmmss
+            // Czas
             document.getElementById('res-time').innerText = timeInfo.hhmmss || "---";
 
-            // Wymiary są bezpośrednio w quote.dimensions
+            // Wymiary
             document.getElementById('res-dims').innerText = q.dimensions || "Brak danych";
 
-            // Objętość jest bezpośrednio w quote.volume
+            // Objętość
             document.getElementById('res-vol').innerText = (Number(q.volume) || 0).toFixed(2) + " cm³";
 
             // 3. Rozbicie kosztów (Breakdown)

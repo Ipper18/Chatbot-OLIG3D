@@ -52,30 +52,54 @@ async function analyzeGeometryWithFastAPI(file) {
         contentType: file.mimetype || 'application/octet-stream',
     });
 
-    const response = await axios.post(url, form, {
-        headers: form.getHeaders(),
-        timeout: 30000,
-    });
+    console.log(`[NodeJS] Wysyłanie pliku do analizy: ${url}`);
 
-    const raw = response.data || {};
+    try {
+        const response = await axios.post(url, form, {
+            headers: form.getHeaders(),
+            timeout: 30000,
+        });
 
-    // FIX: Obsługa różnych nazw kluczy z Pythona (bbox_mm, bounding_box, bbox)
-    const bbox = raw.bounding_box || raw.bbox || raw.bbox_mm || {};
+        const raw = response.data || {};
 
-    // Wyciągnięcie wysokości jeśli brak wprost w raw
-    const heightFromBox =
-        bbox && Array.isArray(bbox) && bbox.length === 2
-            ? bbox[1][2] - bbox[0][2]
-            : undefined;
+        // --- DEBUG: Zobaczmy co zwraca Python ---
+        console.log("[NodeJS] Odpowiedź z Pythona:", JSON.stringify(raw, null, 2));
 
-    return {
-        ...raw,
-        volume_cm3: raw.volume_cm3 ?? (raw.volume_mm3 ? raw.volume_mm3 / 1000 : 0),
-        bounding_box: bbox,
-        // Przekazujemy wymiary jeśli są, w przeciwnym razie null
-        dimensions_mm: raw.dimensions_mm || null,
-        height_mm: raw.height_mm ?? heightFromBox ?? 0,
-    };
+        // Sprawdzenie czy Python nie zwrócił błędu
+        if (raw.error) {
+            console.error("[NodeJS] Python zwrócił błąd logiczny:", raw.error);
+            // Możemy tu rzucić błąd, żeby n8n nie dostało pustych danych
+            throw new Error(`Geometry service error: ${raw.error}`);
+        }
+        // ----------------------------------------
+
+        // FIX: Obsługa różnych nazw kluczy z Pythona
+        // Python w nowym kodzie zwraca "bounding_box" (lista list)
+        const bbox = raw.bounding_box || raw.bbox || raw.bbox_mm || [];
+
+        // Wyciągnięcie wysokości
+        // bbox w formacie [[minX, minY, minZ], [maxX, maxY, maxZ]]
+        let heightFromBox = 0;
+        if (Array.isArray(bbox) && bbox.length === 2 && bbox[1].length === 3) {
+            heightFromBox = bbox[1][2] - bbox[0][2];
+        }
+
+        return {
+            ...raw,
+            volume_cm3: raw.volume_cm3 ?? (raw.volume_mm3 ? raw.volume_mm3 / 1000 : 0),
+            bounding_box: bbox,
+            dimensions_mm: raw.dimensions_mm || null,
+            height_mm: raw.height_mm ?? heightFromBox ?? 0,
+        };
+
+    } catch (err) {
+        console.error("[NodeJS] Błąd połączenia z Pythonem:", err.message);
+        if (err.response) {
+            console.error("[NodeJS] Dane błędu:", err.response.data);
+        }
+        // Rzucamy dalej, żeby endpoint zwrócił błąd 500 zamiast pustego JSONa
+        throw err;
+    }
 }
 
 app.use('/api/admin', basicAuth);

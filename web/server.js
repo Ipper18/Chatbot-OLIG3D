@@ -7,12 +7,13 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
+
 const N8N_URL = process.env.N8N_WEBHOOK_URL;
 const N8N_CHAT_URL = process.env.N8N_CHAT_WEBHOOK_URL;
 const N8N_QUOTE_URL = process.env.N8N_QUOTE_WEBHOOK_URL;
 const client = require('prom-client');
 client.collectDefaultMetrics(); // zbiera CPU, RAM, GC itd.   
-const upload = multer();
+const upload = multer({ storage: multer.memoryStorage() });
 const GEOMETRY_URL = process.env.GEOMETRY_URL || 'http://localhost:8000';
 
 
@@ -265,4 +266,8 @@ app.post('/api/model/analyze', upload.single('file'), async (req, res) => {
 
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok' });
+});
+
+app.get('/upload', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'upload.html'));
 });

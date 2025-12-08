@@ -2,178 +2,397 @@
 <html lang="pl">
 
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wycena modelu 3D – OLIG3D</title>
-    <link rel="stylesheet" href="/styles.css" />
     <style>
-        .result-box {
-            background: #f4f4f4;
-            padding: 1.5rem;
-            border-radius: 8px;
-            margin-top: 1.5rem;
-            border: 1px solid #ddd;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        :root {
+            --primary: #007bff;
+            --success: #2e7d32;
+            --bg: #f4f6f9;
+            --text: #333;
+            --card-bg: #ffffff;
+            --border-color: #eee;
         }
 
-        .price-tag {
-            font-size: 2rem;
-            color: #2e7d32;
-            font-weight: bold;
-            display: block;
-            margin-bottom: 0.5rem;
-        }
-
-        .quote-id {
-            font-size: 0.8rem;
-            color: #888;
-            font-family: monospace;
-            margin-bottom: 1rem;
-            display: block;
-        }
-
-        .error {
-            color: #d32f2f;
-            background: #ffebee;
-            padding: 1rem;
-            border-radius: 4px;
-            margin-top: 1rem;
-        }
-
-        .loading {
-            color: #0288d1;
-            font-weight: bold;
-            margin-top: 1rem;
-        }
-
-        ul.details-list {
-            list-style: none;
-            padding: 0;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            padding-top: 40px;
+            padding-bottom: 40px;
             margin: 0;
         }
 
-        ul.details-list li {
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #eee;
+        .container {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 500px;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         }
 
-        ul.details-list li:last-child {
-            border-bottom: none;
+        h1 {
+            margin-top: 0;
+            text-align: center;
+            color: #2d3748;
+            font-size: 24px;
+            margin-bottom: 25px;
+        }
+
+        /* Formularz */
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        input[type="file"],
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #cbd5e0;
+            cursor: wait;
+        }
+
+        /* Sekcja Wyników */
+        .result-box {
+            display: none;
+            margin-top: 30px;
+            border-top: 2px solid var(--border-color);
+            padding-top: 20px;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .job-badge {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+        }
+
+        .price-tag {
+            font-size: 2.5rem;
+            color: var(--success);
+            font-weight: 800;
+            text-align: center;
+            margin: 10px 0 20px 0;
+        }
+
+        /* Lista szczegółów */
+        ul.specs-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+        ul.specs-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f7fafc;
+        }
+
+        ul.specs-list li span:first-child {
+            color: #718096;
+        }
+
+        ul.specs-list li span:last-child {
+            font-weight: 600;
+            color: #2d3748;
+            text-align: right;
+        }
+
+        /* Rozbicie kosztów (małe) */
+        .cost-breakdown {
+            margin-top: 20px;
+            background: #fafafa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px dashed #e2e8f0;
+        }
+
+        .cost-breakdown h4 {
+            margin: 0 0 10px 0;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            color: #a0aec0;
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        /* Statusy */
+        .loading {
+            text-align: center;
+            color: var(--primary);
+            font-weight: bold;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error {
+            background: #fff5f5;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #fc8181;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .info-footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #a0aec0;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
 
 <body>
-    <main class="container">
-        <h1>Wycena modelu 3D (STL)</h1>
+
+    <div class="container">
+        <h1>Wycena pliku STL</h1>
 
         <form id="quote-form">
-            <div style="margin-bottom: 1rem;">
-                <label style="display:block; margin-bottom: 0.5rem; font-weight: bold;">Wybierz plik (STL/OBJ):</label>
+            <div class="form-group">
+                <label>Wybierz plik (STL/OBJ)</label>
                 <input type="file" name="model" id="file-input" accept=".stl,.obj" required />
             </div>
 
-            <div style="margin-bottom: 1rem;">
-                <label style="display:block; margin-bottom: 0.5rem; font-weight: bold;">Materiał:</label>
-                <select name="material" id="material-input" style="padding: 0.5rem; width: 100%; max-width: 300px;">
-                    <option value="PLA">PLA</option>
-                    <option value="PETG">PETG</option>
-                    <option value="ABS">ABS</option>
+            <div class="form-group">
+                <label>Materiał</label>
+                <select name="material" id="material-input">
+                    <option value="PLA">PLA (Standard)</option>
+                    <option value="PETG">PETG (Wytrzymały)</option>
+                    <option value="ABS">ABS (Techniczny)</option>
                 </select>
             </div>
 
-            <button type="submit" style="padding: 0.7rem 1.5rem; cursor: pointer;">Przeanalizuj i wyceń</button>
+            <button type="submit" id="btn-submit">Wyceń i Zapisz</button>
         </form>
 
-        <div id="result-container"></div>
-    </main>
+        <div id="loading" class="loading">
+            <p>⏳ Przesyłanie, analiza geometrii i kalkulacja w chmurze...</p>
+        </div>
+
+        <div id="error-box" class="error"></div>
+
+        <div id="result-container" class="result-box">
+            <div class="header-row">
+                <span class="job-badge" id="res-job-id">JOB-????</span>
+                <span style="font-size: 0.8rem; color: #a0aec0;">Nowe Zlecenie</span>
+            </div>
+
+            <div class="price-tag" id="res-total">0.00 PLN</div>
+
+            <ul class="specs-list">
+                <li>
+                    <span>Materiał</span>
+                    <span id="res-material">-</span>
+                </li>
+                <li>
+                    <span>Waga materiału</span>
+                    <span id="res-weight">-</span>
+                </li>
+                <li>
+                    <span>Czas druku</span>
+                    <span id="res-time">-</span>
+                </li>
+                <li>
+                    <span>Wymiary (mm)</span>
+                    <span id="res-dims">-</span>
+                </li>
+                <li>
+                    <span>Objętość modelu</span>
+                    <span id="res-vol">-</span>
+                </li>
+            </ul>
+
+            <div class="cost-breakdown">
+                <h4>Składowe ceny</h4>
+                <div class="breakdown-item">
+                    <span>Materiał</span>
+                    <span id="bd-material">0.00 PLN</span>
+                </div>
+                <div class="breakdown-item">
+                    <span>Czas pracy maszyny</span>
+                    <span id="bd-time">0.00 PLN</span>
+                </div>
+                <div class="breakdown-item">
+                    <span>Energia</span>
+                    <span id="bd-energy">0.00 PLN</span>
+                </div>
+                <div class="breakdown-item">
+                    <span>Marża i obsługa</span>
+                    <span id="bd-margin">0.00 PLN</span>
+                </div>
+            </div>
+
+            <p class="info-footer">
+                Zlecenie zostało zapisane w bazie danych.<br>
+                Możesz je wyszukać po numerze ID w zakładce Wyceny.
+            </p>
+        </div>
+    </div>
 
     <script>
         const form = document.getElementById('quote-form');
-        const fileInput = document.getElementById('file-input');
-        const materialInput = document.getElementById('material-input');
-        const resultContainer = document.getElementById('result-container');
+        const btn = document.getElementById('btn-submit');
+        const loading = document.getElementById('loading');
+        const errBox = document.getElementById('error-box');
+        const resBox = document.getElementById('result-container');
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
             // Reset widoku
-            resultContainer.innerHTML = '<p class="loading">Trwa przesyłanie, analiza geometrii i kalkulacja...</p>';
+            btn.disabled = true;
+            loading.style.display = 'block';
+            errBox.style.display = 'none';
+            resBox.style.display = 'none';
 
-            const file = fileInput.files[0];
+            const file = document.getElementById('file-input').files[0];
+            const material = document.getElementById('material-input').value;
+
             if (!file) {
-                resultContainer.innerHTML = '<p class="error">Wybierz plik STL.</p>';
+                showError("Wybierz plik STL/OBJ.");
                 return;
             }
 
             const fd = new FormData();
             fd.append('model', file);
-            fd.append('material', materialInput.value);
+            fd.append('material', material);
 
             try {
-                const res = await fetch('/api/quote-from-stl', {
-                    method: 'POST',
-                    body: fd
-                });
+                // Wywołanie Twojego endpointu w server.js
+                const res = await fetch('/api/quote-from-stl', { method: 'POST', body: fd });
 
+                // Obsługa błędów HTTP
                 if (!res.ok) {
                     const errData = await res.json().catch(() => ({}));
-                    throw new Error(errData.details || errData.error || `Błąd HTTP ${res.status}`);
+                    throw new Error(errData.details || errData.error || `Błąd serwera: ${res.status}`);
                 }
 
                 const data = await res.json();
-                console.log("Otrzymane dane:", data); // Debug w konsoli przeglądarki
 
+                if (!data.success) {
+                    throw new Error(data.error || "Nieznany błąd wyceny");
+                }
+
+                console.log("Dane z serwera:", data);
                 renderSuccess(data);
 
             } catch (err) {
                 console.error(err);
-                resultContainer.innerHTML = `<div class="error">
-                    <strong>Wystąpił błąd:</strong><br>
-                    ${err.message}
-                </div>`;
+                showError(err.message);
+            } finally {
+                btn.disabled = false;
+                loading.style.display = 'none';
             }
         });
 
         function renderSuccess(data) {
-            // 1. Dane geometryczne (z FastAPI)
-            const geo = data.geometry || {};
+            // Pobieramy obiekt quote z odpowiedzi n8n
+            const q = data.quote || {};
+            const bd = q.breakdown || {};
 
-            // 2. Dane wyceny (z n8n - obiekt "quote" ze zrzutu ekranu)
-            const quote = data.quote || {};
+            // 1. Nagłówek
+            document.getElementById('res-job-id').innerText = q.jobExtId || "Brak ID";
+            document.getElementById('res-total').innerText = formatMoney(q.total);
 
-            // Mapowanie pól zgodnie z Twoim zrzutem JSON
-            const price = quote.total !== undefined ? Number(quote.total).toFixed(2) : "0.00";
-            const time = quote.time && quote.time.hhmmss ? quote.time.hhmmss : "---";
-            const weight = quote.material && quote.material.grams ? Number(quote.material.grams).toFixed(1) : "0";
-            const quoteId = quote.quoteId || "---";
-            const materialUsed = quote.material && quote.material.material ? quote.material.material : materialInput.value;
+            // 2. Tabela parametrów
+            document.getElementById('res-material').innerText = q.material?.material || document.getElementById('material-input').value;
+            document.getElementById('res-weight').innerText = (q.material?.grams || 0).toFixed(1) + " g";
 
-            // Wyliczanie wymiarów
-            let dimStr = "Brak danych";
-            if (geo.bounding_box) {
-                const x = Math.round(geo.bounding_box.x?.[1] - geo.bounding_box.x?.[0]);
-                const y = Math.round(geo.bounding_box.y?.[1] - geo.bounding_box.y?.[0]);
-                const z = Math.round(geo.height_mm || 0);
-                if (!isNaN(x)) dimStr = `${x} x ${y} x ${z} mm`;
-            }
+            // Czas: Preferujemy sformatowany hh:mm:ss, ale jak nie ma to minuty
+            const timeStr = q.time?.hhmmss || (q.time?.minutes ? q.time.minutes + " min" : "---");
+            document.getElementById('res-time').innerText = timeStr;
 
-            resultContainer.innerHTML = `
-                <div class="result-box">
-                    <h2>Wynik kalkulacji</h2>
-                    <span class="quote-id">ID: ${quoteId}</span>
-                    
-                    <span class="price-tag">${price} PLN</span>
+            document.getElementById('res-dims').innerText = q.dimensions || "Brak danych";
+            document.getElementById('res-vol').innerText = (q.volume || 0).toFixed(2) + " cm³";
 
-                    <ul class="details-list">
-                        <li><strong>Wybrany materiał:</strong> ${materialUsed}</li>
-                        <li><strong>Waga wydruku:</strong> ${weight} g</li>
-                        <li><strong>Szacowany czas druku:</strong> ${time}</li>
-                        <li><strong>Wymiary (bbox):</strong> ${dimStr}</li>
-                        <li><strong>Objętość modelu:</strong> ${geo.volume_cm3 ? Number(geo.volume_cm3).toFixed(2) : 0} cm³</li>
-                    </ul>
-                </div>
-            `;
+            // 3. Rozbicie kosztów (Breakdown)
+            document.getElementById('bd-material').innerText = formatMoney(bd.materialCost);
+            document.getElementById('bd-time').innerText = formatMoney(bd.timeCost);
+            document.getElementById('bd-energy').innerText = formatMoney(bd.energyCost);
+            document.getElementById('bd-margin').innerText = formatMoney(bd.margin);
+
+            // Pokaż wynik
+            resBox.style.display = 'block';
+        }
+
+        function showError(msg) {
+            errBox.innerText = msg;
+            errBox.style.display = 'block';
+            btn.disabled = false;
+            loading.style.display = 'none';
+        }
+
+        function formatMoney(val) {
+            const num = Number(val) || 0;
+            return num.toFixed(2) + " PLN";
         }
     </script>
 

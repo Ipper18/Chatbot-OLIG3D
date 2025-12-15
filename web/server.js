@@ -168,7 +168,7 @@ app.post('/api/chat', async (req, res) => {
             (typeof out === 'string' ? out : null) ??
             '[brak odpowiedzi]';
 
-        res.json({ success: true, sessionId, reply });
+        res.json({ success: true, sessionId, reply, raw: out });
     } catch (e) {
         res.status(502).json({ success: false, reply: '[błąd upstream n8n]' });
     }

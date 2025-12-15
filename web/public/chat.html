@@ -3,27 +3,22 @@
 
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Chatbot OLIG3D</title>
     <style>
         :root {
-            --bg1: #05070c;
-            --bg2: #07152b;
-            --card: #0b1220cc;
-            --card2: #0b1220f2;
-            --stroke: #1b2a44;
-            --stroke2: #253a63;
-            --text: #e8f0ff;
-            --muted: #a8b7d6;
-            --blue: #2d6bff;
-            --blue2: #1f4cd1;
-            --bubble: #0f1a2f;
-            --bubble2: #0e1526;
-            --shadow: 0 30px 80px rgba(0, 0, 0, .55);
-            --radius: 22px;
-            --radius2: 16px;
-            --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-            --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+            --bg1: #070a12;
+            --bg2: #0a1632;
+            --card: #0c1220cc;
+            --card2: #0a1122cc;
+            --stroke: #ffffff14;
+            --stroke2: #ffffff1f;
+            --text: #eaf1ff;
+            --muted: #a7b2cc;
+            --blue: #2a67ff;
+            --blue2: #1e53d6;
+            --shadow: 0 18px 50px rgba(0, 0, 0, .55);
+            --radius: 24px;
         }
 
         * {
@@ -37,749 +32,789 @@
 
         body {
             margin: 0;
-            font-family: var(--sans);
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
             color: var(--text);
             background:
-                radial-gradient(1200px 700px at 50% 0%, rgba(45, 107, 255, .35), transparent 60%),
-                radial-gradient(900px 600px at 10% 100%, rgba(119, 66, 255, .22), transparent 55%),
-                linear-gradient(180deg, var(--bg2), var(--bg1));
+                radial-gradient(1200px 600px at 50% 0%, #13306a 0%, rgba(19, 48, 106, 0) 60%),
+                radial-gradient(900px 600px at 0% 100%, rgba(119, 0, 255, .22) 0%, rgba(119, 0, 255, 0) 55%),
+                linear-gradient(180deg, var(--bg2) 0%, var(--bg1) 60%);
+            overflow: hidden;
+        }
+
+        .page {
+            min-height: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 40px 16px 24px;
+            padding: 28px 16px 20px;
+            gap: 18px;
         }
 
         h1 {
-            margin: 0 0 18px;
-            font-size: 56px;
+            margin: 10px 0 0;
+            font-size: clamp(34px, 4vw, 56px);
             letter-spacing: .5px;
-            text-shadow: 0 10px 50px rgba(0, 0, 0, .6);
+            font-weight: 900;
+            text-shadow: 0 10px 40px rgba(0, 0, 0, .55);
         }
 
         .shell {
-            width: min(1200px, 100%);
-            border-radius: calc(var(--radius) + 10px);
-            background: linear-gradient(180deg, rgba(10, 20, 40, .55), rgba(10, 20, 40, .35));
-            border: 1px solid rgba(255, 255, 255, .08);
-            box-shadow: var(--shadow);
+            width: min(1220px, 100%);
+            flex: 1;
+            display: flex;
+            gap: 18px;
             padding: 18px;
-        }
-
-        .frame {
-            display: grid;
-            grid-template-columns: 380px 1fr;
-            gap: 16px;
-            min-height: 560px;
-        }
-
-        @media (max-width: 980px) {
-            h1 {
-                font-size: 38px
-            }
-
-            .frame {
-                grid-template-columns: 1fr;
-                min-height: unset;
-            }
-        }
-
-        /* Left: Quote panel */
-        .quotePanel {
-            background: var(--card);
-            border: 1px solid rgba(255, 255, 255, .08);
-            border-radius: var(--radius);
-            padding: 16px;
+            border-radius: 30px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, .05) 0%, rgba(255, 255, 255, .03) 100%);
+            border: 1px solid var(--stroke);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
             overflow: hidden;
-            position: relative;
         }
 
-        .quotePanel::before {
-            content: "";
-            position: absolute;
-            inset: -2px;
-            background: radial-gradient(600px 280px at 50% 0%, rgba(45, 107, 255, .25), transparent 60%);
-            pointer-events: none;
+        .left {
+            width: 360px;
+            min-width: 300px;
+            border-radius: var(--radius);
+            background: linear-gradient(180deg, rgba(20, 40, 86, .45) 0%, rgba(8, 12, 20, .55) 60%);
+            border: 1px solid var(--stroke);
+            padding: 18px;
+            overflow: hidden;
         }
 
-        .quoteInner {
-            position: relative;
-            z-index: 1;
-        }
-
-        .quoteTitle {
-            font-weight: 800;
-            font-size: 18px;
-            margin: 2px 0 12px;
-            opacity: .95;
-        }
-
-        .total {
-            font-size: 34px;
-            font-weight: 900;
-            text-align: center;
-            margin: 10px 0 14px;
-            letter-spacing: .3px;
-        }
-
-        .subtle {
-            text-align: center;
-            color: var(--muted);
-            font-size: 12px;
-            margin-top: -10px;
-            margin-bottom: 14px;
-        }
-
-        .rows {
-            border-top: 1px solid rgba(255, 255, 255, .08);
-            margin-top: 10px;
-            padding-top: 12px;
+        .right {
+            flex: 1;
+            border-radius: var(--radius);
+            background: linear-gradient(180deg, rgba(9, 14, 26, .65) 0%, rgba(6, 10, 18, .55) 70%);
+            border: 1px solid var(--stroke);
             display: flex;
             flex-direction: column;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        /* LEFT PANEL */
+        .panelTitle {
+            font-weight: 800;
+            font-size: 18px;
+            margin: 2px 0 10px;
+            color: #dbe6ff;
+        }
+
+        .bigPrice {
+            text-align: center;
+            padding: 10px 10px 2px;
+        }
+
+        .bigPrice .label {
+            color: var(--muted);
+            font-size: 13px;
+            letter-spacing: .3px
+        }
+
+        .bigPrice .value {
+            font-size: 34px;
+            font-weight: 900;
+            margin-top: 6px
+        }
+
+        .bigPrice .job {
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 4px
+        }
+
+        .kv {
+            margin-top: 14px;
+            border-top: 1px solid var(--stroke);
+            padding-top: 12px;
+            display: grid;
             gap: 10px;
         }
 
         .row {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 10px;
-            padding: 10px 10px;
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            color: #dbe6ff;
+            padding: 10px 12px;
             border-radius: 14px;
             background: rgba(0, 0, 0, .18);
-            border: 1px solid rgba(255, 255, 255, .06);
+            border: 1px solid var(--stroke);
         }
 
         .row .k {
-            color: var(--muted);
-            font-size: 13px
+            color: #c7d2ef
         }
 
         .row .v {
-            font-weight: 800;
-            font-size: 13px;
+            color: #ffffff;
+            font-weight: 700;
             text-align: right
         }
 
-        .box {
-            margin-top: 12px;
-            border-radius: 16px;
-            background: rgba(0, 0, 0, .18);
-            border: 1px dashed rgba(255, 255, 255, .18);
-            padding: 12px;
+        .subCard {
+            margin-top: 14px;
+            padding: 14px;
+            border-radius: 18px;
+            background: rgba(0, 0, 0, .22);
+            border: 1px solid var(--stroke);
         }
 
-        .boxTitle {
-            color: var(--muted);
+        .subCard h3 {
+            margin: 0 0 12px;
             font-size: 12px;
-            font-weight: 800;
-            letter-spacing: .4px;
-            margin-bottom: 8px;
+            letter-spacing: .7px;
+            color: #c9d5ff;
+            text-transform: uppercase;
+            opacity: .9;
         }
 
-        .boxRow {
-            display: grid;
-            grid-template-columns: 1fr auto;
+        /* CHAT */
+        .chatHeader {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--stroke);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             gap: 10px;
-            padding: 6px 0;
-            border-top: 1px solid rgba(255, 255, 255, .06);
         }
 
-        .boxRow:first-of-type {
-            border-top: 0
-        }
-
-        .boxRow .k {
+        .chatHeader .hint {
             color: var(--muted);
-            font-size: 13px
-        }
-
-        .boxRow .v {
-            font-weight: 900;
             font-size: 13px;
-            text-align: right
+            line-height: 1.2;
         }
 
-        /* Right: Chat */
-        .chatCol {
-            background: var(--card);
-            border: 1px solid rgba(255, 255, 255, .08);
-            border-radius: var(--radius);
+        .chatScroll {
+            flex: 1;
+            min-height: 0;
+            overflow: auto;
+            padding: 18px;
             display: flex;
             flex-direction: column;
+            gap: 14px;
+        }
+
+        .msg {
+            max-width: 78%;
+            padding: 12px 14px;
+            border-radius: 16px;
+            border: 1px solid var(--stroke);
+            background: rgba(0, 0, 0, .18);
+            box-shadow: 0 10px 28px rgba(0, 0, 0, .25);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .msg .who {
+            font-size: 11px;
+            color: var(--muted);
+            margin-bottom: 6px;
+            letter-spacing: .2px;
+            font-weight: 700;
+        }
+
+        .msg.user {
+            margin-left: auto;
+            background: linear-gradient(180deg, rgba(42, 103, 255, .95) 0%, rgba(30, 83, 214, .95) 100%);
+            border: 1px solid rgba(255, 255, 255, .15);
+        }
+
+        .msg.bot {
+            margin-right: auto;
+            background: rgba(0, 0, 0, .18);
+        }
+
+        .cardQuote {
+            margin-top: 8px;
+            border-radius: 14px;
+            border: 1px solid var(--stroke);
+            background: rgba(255, 255, 255, .04);
             overflow: hidden;
         }
 
-        .messages {
-            flex: 1;
-            padding: 14px;
-            overflow: auto;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(255, 255, 255, .25) transparent;
+        .cardQuote .top {
+            padding: 12px 12px 10px;
+            border-bottom: 1px solid var(--stroke);
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: flex-end;
         }
 
-        .messages::-webkit-scrollbar {
-            width: 10px
-        }
-
-        .messages::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, .18);
-            border-radius: 99px
-        }
-
-        .messages::-webkit-scrollbar-track {
-            background: transparent
-        }
-
-        .bubble {
-            max-width: 70%;
-            padding: 12px 14px;
-            border-radius: 16px;
-            margin: 10px 0;
-            border: 1px solid rgba(255, 255, 255, .08);
-            background: rgba(0, 0, 0, .20);
-            box-shadow: 0 16px 34px rgba(0, 0, 0, .35);
-            white-space: pre-wrap;
-            line-height: 1.28;
-            font-size: 14px;
-        }
-
-        .bubble .who {
-            display: block;
-            font-size: 11px;
+        .cardQuote .top .t1 {
             font-weight: 900;
-            opacity: .9;
-            margin-bottom: 6px;
+            font-size: 18px
+        }
+
+        .cardQuote .top .t2 {
             color: var(--muted);
+            font-size: 12px;
+            text-align: right
         }
 
-        .bubble.user {
-            margin-left: auto;
-            background: linear-gradient(180deg, rgba(45, 107, 255, .92), rgba(31, 76, 209, .92));
-            border-color: rgba(255, 255, 255, .10);
+        .cardQuote .grid {
+            padding: 10px 12px 12px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 10px;
         }
 
-        .bubble.user .who {
-            color: rgba(255, 255, 255, .85)
+        .mini {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 12px;
+            border: 1px solid var(--stroke);
+            background: rgba(0, 0, 0, .16);
+            font-size: 13px;
+            color: #dbe6ff;
         }
 
-        .bubble.assistant {
-            margin-right: auto;
-            background: rgba(0, 0, 0, .22);
+        .mini .k {
+            color: #c7d2ef
         }
 
-        .composer {
-            border-top: 1px solid rgba(255, 255, 255, .08);
-            padding: 12px;
+        .mini .v {
+            font-weight: 800;
+            text-align: right
+        }
+
+        /* INPUT */
+        .controls {
+            border-top: 1px solid var(--stroke);
+            padding: 14px 14px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: rgba(0, 0, 0, .12);
+        }
+
+        .row1 {
             display: flex;
             gap: 10px;
             align-items: center;
-            background: var(--card2);
         }
 
-        .input {
+        .textInput {
             flex: 1;
-            height: 44px;
+            min-width: 0;
+            padding: 12px 14px;
             border-radius: 14px;
-            border: 1px solid rgba(255, 255, 255, .10);
+            border: 1px solid var(--stroke);
             background: rgba(0, 0, 0, .22);
             color: var(--text);
-            padding: 0 14px;
             outline: none;
-            font-size: 14px;
         }
 
-        .input:focus {
-            border-color: rgba(45, 107, 255, .55);
-            box-shadow: 0 0 0 4px rgba(45, 107, 255, .15);
+        .textInput:focus {
+            border-color: rgba(255, 255, 255, .25)
         }
 
         .btn {
-            height: 44px;
+            border: none;
             border-radius: 14px;
-            border: 1px solid rgba(255, 255, 255, .10);
-            background: rgba(0, 0, 0, .22);
-            color: var(--text);
-            padding: 0 14px;
+            padding: 12px 16px;
+            font-weight: 800;
+            color: white;
             cursor: pointer;
-            font-weight: 900;
-            letter-spacing: .2px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+            background: linear-gradient(180deg, var(--blue) 0%, var(--blue2) 100%);
+            box-shadow: 0 12px 30px rgba(30, 83, 214, .28);
         }
 
-        .btn:hover {
-            border-color: rgba(255, 255, 255, .18)
-        }
-
-        .btn.primary {
-            background: linear-gradient(180deg, rgba(45, 107, 255, .95), rgba(31, 76, 209, .95));
-            border-color: rgba(255, 255, 255, .12);
-        }
-
-        .btn.primary:disabled {
+        .btn:disabled {
             opacity: .55;
-            cursor: not-allowed;
+            cursor: not-allowed
         }
 
-        .fileBtn {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .fileBtn input[type="file"] {
-            position: absolute;
-            inset: 0;
-            opacity: 0;
-            cursor: pointer;
-        }
-
-        select {
-            height: 44px;
+        .btnGhost {
             border-radius: 14px;
-            border: 1px solid rgba(255, 255, 255, .10);
+            padding: 10px 14px;
+            border: 1px solid var(--stroke);
+            background: rgba(0, 0, 0, .22);
+            color: #dbe6ff;
+            cursor: pointer;
+            font-weight: 800;
+        }
+
+        .row2 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .fileWrap {
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .select {
+            padding: 10px 12px;
+            border-radius: 14px;
+            border: 1px solid var(--stroke);
             background: rgba(0, 0, 0, .22);
             color: var(--text);
-            padding: 0 12px;
             outline: none;
-            font-weight: 900;
-            cursor: pointer;
+            font-weight: 800;
         }
 
-        .footer {
-            padding: 10px 12px 14px;
+        .fileName {
+            color: var(--muted);
+            font-size: 12px;
+            max-width: 380px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .footerLink {
             text-align: center;
-            color: var(--muted);
+            padding: 2px 0 10px;
+            color: #c9d5ff;
             font-size: 13px;
-            background: transparent;
-        }
-
-        .newChat {
-            color: var(--muted);
             text-decoration: underline;
             cursor: pointer;
-            user-select: none;
+            opacity: .9;
         }
 
-        .newChat:hover {
-            color: var(--text)
-        }
+        /* RESPONSIVE */
+        @media (max-width: 980px) {
+            body {
+                overflow: auto
+            }
 
-        .fileBadge {
-            margin-top: 6px;
-            font-size: 12px;
-            color: var(--muted);
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            justify-content: flex-end;
-            padding: 0 12px 10px;
-            background: transparent;
-        }
+            .page {
+                padding: 20px 12px 20px
+            }
 
-        .fileBadge code {
-            font-family: var(--mono);
-            font-size: 12px;
-            color: var(--text);
-            background: rgba(0, 0, 0, .20);
-            border: 1px solid rgba(255, 255, 255, .08);
-            padding: 4px 8px;
-            border-radius: 12px;
-        }
+            .shell {
+                flex-direction: column;
+                overflow: visible
+            }
 
-        .fileBadge .x {
-            color: rgba(255, 255, 255, .75);
-            border: 1px solid rgba(255, 255, 255, .12);
-            background: rgba(0, 0, 0, .18);
-            width: 26px;
-            height: 26px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 10px;
-            cursor: pointer;
-            user-select: none;
-        }
+            .left {
+                width: 100%
+            }
 
-        .fileBadge .x:hover {
-            border-color: rgba(255, 255, 255, .20)
+            .right {
+                min-height: 560px
+            }
         }
     </style>
 </head>
 
 <body>
-    <h1>Chatbot OLIG3D</h1>
+    <div class="page">
+        <h1>Chatbot OLIG3D</h1>
 
-    <div class="shell">
-        <div class="frame">
-            <!-- LEFT -->
-            <aside class="quotePanel">
-                <div class="quoteInner">
-                    <div class="quoteTitle">Wycena STL</div>
-                    <div id="quoteTotal" class="total">0.00 PLN</div>
-                    <div id="quoteJob" class="subtle">JOB —</div>
+        <div class="shell">
+            <aside class="left" id="summaryPanel">
+                <div class="panelTitle">Wycena STL</div>
+                <div class="bigPrice">
+                    <div class="label">CAŁKOWITY KOSZT</div>
+                    <div class="value" id="sumTotal">0.00 PLN</div>
+                    <div class="job" id="sumJob">JOB —</div>
+                </div>
 
-                    <div class="rows">
-                        <div class="row">
-                            <div class="k">Materiał</div>
-                            <div id="qMaterial" class="v">—</div>
-                        </div>
-                        <div class="row">
-                            <div class="k">Waga</div>
-                            <div id="qGrams" class="v">—</div>
-                        </div>
-                        <div class="row">
-                            <div class="k">Czas</div>
-                            <div id="qTime" class="v">—</div>
-                        </div>
-                        <div class="row">
-                            <div class="k">Wymiary</div>
-                            <div id="qDims" class="v">—</div>
-                        </div>
-                        <div class="row">
-                            <div class="k">Objętość</div>
-                            <div id="qVol" class="v">—</div>
-                        </div>
+                <div class="kv" id="sumKv">
+                    <div class="row">
+                        <div class="k">Materiał</div>
+                        <div class="v" id="sumMaterial">—</div>
                     </div>
+                    <div class="row">
+                        <div class="k">Waga</div>
+                        <div class="v" id="sumWeight">—</div>
+                    </div>
+                    <div class="row">
+                        <div class="k">Czas</div>
+                        <div class="v" id="sumTime">—</div>
+                    </div>
+                    <div class="row">
+                        <div class="k">Wymiary</div>
+                        <div class="v" id="sumDims">—</div>
+                    </div>
+                    <div class="row">
+                        <div class="k">Objętość</div>
+                        <div class="v" id="sumVol">—</div>
+                    </div>
+                </div>
 
-                    <div class="box">
-                        <div class="boxTitle">SKŁADOWE CENY</div>
-                        <div class="boxRow">
+                <div class="subCard">
+                    <h3>Składowe ceny</h3>
+                    <div class="kv" style="margin-top:0;border-top:none;padding-top:0">
+                        <div class="row">
                             <div class="k">Materiał</div>
-                            <div id="bMat" class="v">—</div>
+                            <div class="v" id="sumMatCost">—</div>
                         </div>
-                        <div class="boxRow">
+                        <div class="row">
                             <div class="k">Czas pracy maszyny</div>
-                            <div id="bTime" class="v">—</div>
+                            <div class="v" id="sumTimeCost">—</div>
                         </div>
-                        <div class="boxRow">
+                        <div class="row">
                             <div class="k">Energia</div>
-                            <div id="bEnergy" class="v">—</div>
+                            <div class="v" id="sumEnergyCost">—</div>
                         </div>
-                        <div class="boxRow">
+                        <div class="row">
                             <div class="k">Marża i obsługa</div>
-                            <div id="bMargin" class="v">—</div>
+                            <div class="v" id="sumMargin">—</div>
                         </div>
                     </div>
                 </div>
             </aside>
 
-            <!-- RIGHT -->
-            <section class="chatCol">
-                <div id="messages" class="messages"></div>
-
-                <div class="composer">
-                    <input id="messageInput" class="input" placeholder="Napisz wiadomość..." autocomplete="off" />
-
-                    <label class="btn fileBtn" title="Wybierz plik STL/OBJ">
-                        STL
-                        <input id="stlInput" type="file" accept=".stl,.obj,model/stl,application/sla" />
-                    </label>
-
-                    <select id="materialSelect" title="Materiał">
-                        <option value="PLA">PLA</option>
-                        <option value="PETG">PETG</option>
-                        <option value="ASA">ASA</option>
-                        <option value="ABS">ABS</option>
-                        <option value="TPU">TPU</option>
-                    </select>
-
-                    <button id="sendBtn" class="btn primary">Wyślij</button>
+            <main class="right">
+                <div class="chatHeader">
+                    <div class="hint"><strong>OLIG3D:</strong> Napisz wiadomość lub wybierz STL i kliknij „Wyślij”.
+                    </div>
+                    <div class="hint" id="sessInfo"></div>
                 </div>
 
-                <div id="fileBadge" class="fileBadge" style="display:none;">
-                    Wybrany plik: <code id="fileName">—</code>
-                    <span id="clearFile" class="x" title="Usuń plik">✕</span>
-                </div>
+                <div class="chatScroll" id="chat"></div>
 
-                <div class="footer">
-                    <span id="newChat" class="newChat">Zacznij nową rozmowę</span>
+                <div class="controls">
+                    <div class="row1">
+                        <input class="textInput" id="message" placeholder="Napisz wiadomość…" autocomplete="off" />
+                        <button class="btn" id="sendBtn">Wyślij</button>
+                    </div>
+                    <div class="row2">
+                        <div class="fileWrap">
+                            <input type="file" id="file" accept=".stl,.obj" style="display:none" />
+                            <button class="btnGhost" id="pickFileBtn">STL</button>
+                            <select class="select" id="material">
+                                <option value="PLA">PLA</option>
+                                <option value="ASA">ASA</option>
+                                <option value="PETG">PETG</option>
+                                <option value="ABS">ABS</option>
+                            </select>
+                            <div class="fileName" id="fileName">Nie wybrano pliku</div>
+                        </div>
+                    </div>
+                    <div class="footerLink" id="newChat">Zacznij nową rozmowę</div>
                 </div>
-            </section>
+            </main>
         </div>
     </div>
 
     <script>
-        // ====== STATE (bez localStorage, tylko w tej sesji strony) ======
-        let sessionId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now());
-        let selectedFile = null;
+        // ===== Helpers =====
+        const $ = (id) => document.getElementById(id);
 
-        const el = (id) => document.getElementById(id);
-        const messagesEl = el('messages');
-
-        // Quote panel fields
-        const q = {
-            total: el('quoteTotal'),
-            job: el('quoteJob'),
-            material: el('qMaterial'),
-            grams: el('qGrams'),
-            time: el('qTime'),
-            dims: el('qDims'),
-            vol: el('qVol'),
-            bMat: el('bMat'),
-            bTime: el('bTime'),
-            bEnergy: el('bEnergy'),
-            bMargin: el('bMargin'),
-        };
-
-        // Controls
-        const inputEl = el('messageInput');
-        const stlInputEl = el('stlInput');
-        const matEl = el('materialSelect');
-        const sendBtn = el('sendBtn');
-
-        const fileBadge = el('fileBadge');
-        const fileNameEl = el('fileName');
-        const clearFileEl = el('clearFile');
-        const newChatEl = el('newChat');
-
-        // ====== HELPERS ======
-        function money(n, currency = 'PLN') {
-            const v = Number(n);
-            if (!Number.isFinite(v)) return '—';
-            return v.toFixed(2) + ' ' + currency;
+        function fmtPln(x) {
+            const n = Number(x);
+            if (!Number.isFinite(n)) return '—';
+            return n.toFixed(2) + ' PLN';
         }
 
-        function textOrDash(v) {
-            if (v === null || v === undefined || v === '') return '—';
-            return String(v);
+        function fmtNum(x, digits = 2) {
+            const n = Number(x);
+            if (!Number.isFinite(n)) return '—';
+            return n.toFixed(digits);
         }
 
-        function timeLabel(obj) {
-            // Prefer hhmmss, else minutes
-            if (obj && obj.hhmmss) return obj.hhmmss;
-            const m = obj && Number(obj.minutes);
-            if (Number.isFinite(m)) return m + ' min';
-            return '—';
+        function safeStr(v, fallback = '—') {
+            if (v === null || v === undefined) return fallback;
+            const s = String(v);
+            return s.trim() ? s : fallback;
         }
 
-        function normalizeResponse(data) {
-            // n8n czasem zwraca tablicę: [ { ... } ]
-            if (Array.isArray(data)) return data[0] ?? {};
-            return data ?? {};
-        }
+        function normalizeQuotePayload(payload) {
+            if (!payload) return null;
 
-        function extractQuote(normalized) {
-            // /upload -> { success:true, quote:{...} }
-            // /quote  -> { success:true, quoteId..., jobExtId..., breakdown... } albo [ { ... } ]
-            if (normalized && typeof normalized === 'object') {
-                if (normalized.quote && typeof normalized.quote === 'object') return normalized.quote;
-                // jeśli wygląda jak quote po polach:
-                if (normalized.jobExtId || normalized.total || normalized.breakdown) return normalized;
-            }
-            return null;
-        }
+            // server: {success:true, geometry, quote: <n8nResponse>}
+            let q = payload.quote ?? payload;
 
-        function addBubble(who, text) {
-            const wrap = document.createElement('div');
-            wrap.className = 'bubble ' + (who === 'user' ? 'user' : 'assistant');
+            // n8n sometimes returns an array of items
+            if (Array.isArray(q)) q = q[0];
 
-            const label = document.createElement('span');
-            label.className = 'who';
-            label.textContent = (who === 'user') ? 'Ty:' : 'OLIG3D:';
-
-            const body = document.createElement('div');
-            body.textContent = text;
-
-            wrap.appendChild(label);
-            wrap.appendChild(body);
-            messagesEl.appendChild(wrap);
-            messagesEl.scrollTop = messagesEl.scrollHeight;
-        }
-
-        function setQuotePanel(quote) {
-            if (!quote) {
-                q.total.textContent = '0.00 PLN';
-                q.job.textContent = 'JOB —';
-                q.material.textContent = '—';
-                q.grams.textContent = '—';
-                q.time.textContent = '—';
-                q.dims.textContent = '—';
-                q.vol.textContent = '—';
-                q.bMat.textContent = '—';
-                q.bTime.textContent = '—';
-                q.bEnergy.textContent = '—';
-                q.bMargin.textContent = '—';
-                return;
+            // n8n response may be {success:true, quote:{...}}
+            if (q && typeof q === 'object' && q.quote && typeof q.quote === 'object') {
+                q = q.quote;
             }
 
-            const currency = quote.currency || 'PLN';
+            // /quote workflow sometimes returns {success:true, jobExtId,...} (no nested quote)
+            if (q && typeof q === 'object' && q.success === true && q.jobExtId) {
+                // already ok
+            }
 
-            q.total.textContent = money(quote.total, currency);
-            q.job.textContent = quote.jobExtId ? quote.jobExtId : (quote.jobExtId === '' ? 'JOB —' : 'JOB —');
+            return (q && typeof q === 'object') ? q : null;
+        }
+
+        function updateSummaryFromQuote(quote) {
+            if (!quote) return;
+
+            $('sumTotal').textContent = fmtPln(quote.total);
+            $('sumJob').textContent = safeStr(quote.jobExtId || quote.jobExtID || quote.job || 'JOB —');
 
             const mat = quote.material?.material ?? quote.material ?? null;
-            q.material.textContent = textOrDash(mat);
+            $('sumMaterial').textContent = safeStr(mat);
 
             const grams = quote.material?.grams;
-            q.grams.textContent = Number.isFinite(Number(grams)) ? (Number(grams).toFixed(2) + ' g') : '—';
+            $('sumWeight').textContent = Number.isFinite(Number(grams)) ? `${fmtNum(grams, 2)} g` : '—';
 
-            q.time.textContent = timeLabel(quote.time);
+            const hhmmss = quote.time?.hhmmss ?? null;
+            $('sumTime').textContent = safeStr(hhmmss);
 
-            q.dims.textContent = textOrDash(quote.dimensions ?? quote.dims ?? null);
+            $('sumDims').textContent = safeStr(quote.dimensions);
 
             const vol = quote.volume;
-            q.vol.textContent = Number.isFinite(Number(vol)) ? (Number(vol).toFixed(2) + ' cm³') : '—';
+            $('sumVol').textContent = Number.isFinite(Number(vol)) ? `${fmtNum(vol, 2)} cm³` : '—';
 
-            // breakdown
-            const b = quote.breakdown || {};
-            q.bMat.textContent = money(b.materialCost, currency);
-            q.bTime.textContent = money(b.timeCost, currency);
-            q.bEnergy.textContent = money(b.energyCost, currency);
-            q.bMargin.textContent = money(b.margin, currency);
+            $('sumMatCost').textContent = fmtPln(quote.breakdown?.materialCost);
+            $('sumTimeCost').textContent = fmtPln(quote.breakdown?.timeCost);
+            $('sumEnergyCost').textContent = fmtPln(quote.breakdown?.energyCost);
+            $('sumMargin').textContent = fmtPln(quote.breakdown?.margin);
         }
 
-        function showSelectedFile(file) {
-            if (!file) {
-                fileBadge.style.display = 'none';
-                fileNameEl.textContent = '—';
-                return;
-            }
-            fileBadge.style.display = 'flex';
-            fileNameEl.textContent = file.name;
+        function makeQuoteCard(quote) {
+            const wrap = document.createElement('div');
+            wrap.className = 'cardQuote';
+
+            const top = document.createElement('div');
+            top.className = 'top';
+
+            const left = document.createElement('div');
+            const t1 = document.createElement('div');
+            t1.className = 't1';
+            t1.textContent = fmtPln(quote.total);
+            const t2 = document.createElement('div');
+            t2.className = 't2';
+            t2.textContent = safeStr(quote.jobExtId || 'JOB');
+            left.appendChild(t1);
+
+            const right = document.createElement('div');
+            right.style.textAlign = 'right';
+            right.appendChild(t2);
+
+            top.appendChild(left);
+            top.appendChild(right);
+            wrap.appendChild(top);
+
+            const grid = document.createElement('div');
+            grid.className = 'grid';
+
+            const addMini = (k, v) => {
+                const m = document.createElement('div');
+                m.className = 'mini';
+                const kk = document.createElement('div');
+                kk.className = 'k';
+                kk.textContent = k;
+                const vv = document.createElement('div');
+                vv.className = 'v';
+                vv.textContent = v;
+                m.appendChild(kk);
+                m.appendChild(vv);
+                grid.appendChild(m);
+            };
+
+            addMini('Materiał', safeStr(quote.material?.material ?? quote.material));
+            addMini('Waga', Number.isFinite(Number(quote.material?.grams)) ? `${fmtNum(quote.material.grams, 2)} g` : '—');
+            addMini('Czas', safeStr(quote.time?.hhmmss));
+            addMini('Wymiary', safeStr(quote.dimensions));
+            addMini('Objętość', Number.isFinite(Number(quote.volume)) ? `${fmtNum(quote.volume, 2)} cm³` : '—');
+            addMini('Cena filament', fmtPln(quote.breakdown?.materialCost));
+            addMini('Czas maszyny', fmtPln(quote.breakdown?.timeCost));
+            addMini('Energia', fmtPln(quote.breakdown?.energyCost));
+            addMini('Marża', fmtPln(quote.breakdown?.margin));
+
+            wrap.appendChild(grid);
+            return wrap;
         }
 
-        function clearSelectedFile() {
-            selectedFile = null;
-            stlInputEl.value = '';
-            showSelectedFile(null);
+        function addMessage(who, text, extraEl) {
+            const msg = document.createElement('div');
+            msg.className = 'msg ' + (who === 'Ty' ? 'user' : 'bot');
+
+            const w = document.createElement('div');
+            w.className = 'who';
+            w.textContent = who + ':';
+
+            const t = document.createElement('div');
+            t.textContent = text;
+
+            msg.appendChild(w);
+            msg.appendChild(t);
+
+            if (extraEl) msg.appendChild(extraEl);
+
+            $('chat').appendChild(msg);
+            $('chat').scrollTop = $('chat').scrollHeight;
         }
 
-        // ====== API CALLS ======
+        // ===== Session =====
+        function newSessionId() {
+            return 'sess_' + Math.random().toString(36).slice(2) + '_' + Date.now().toString(36);
+        }
+
+        let sessionId = localStorage.getItem('olig3d_sessionId');
+        if (!sessionId) {
+            sessionId = newSessionId();
+            localStorage.setItem('olig3d_sessionId', sessionId);
+        }
+        $('sessInfo').textContent = 'Sesja: ' + sessionId.replace('sess_', '');
+
+        // ===== File selection =====
+        let selectedFile = null;
+
+        $('pickFileBtn').addEventListener('click', () => $('file').click());
+        $('file').addEventListener('change', (e) => {
+            selectedFile = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+            $('fileName').textContent = selectedFile ? selectedFile.name : 'Nie wybrano pliku';
+        });
+
+        // ===== API calls =====
         async function sendTextMessage(text) {
-            const payload = { message: text, sessionId };
-            const r = await fetch('/api/chat', {
+            const res = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+                body: JSON.stringify({ message: text, sessionId })
             });
-
-            const raw = await r.json().catch(() => ({}));
-            const data = normalizeResponse(raw);
-
-            // 1) quote?
-            const quote = extractQuote(data);
-            if (quote) {
-                setQuotePanel(quote);
-                addBubble('assistant', `Wycena / dane JOB: ${quote.jobExtId || '—'}\nSuma: ${money(quote.total, quote.currency || 'PLN')}`);
-                return;
-            }
-
-            // 2) reply string?
-            const reply =
-                data.reply ??
-                data.output?.reply ??
-                data.data?.reply ??
-                (typeof raw === 'string' ? raw : null);
-
-            if (reply && String(reply).trim()) {
-                addBubble('assistant', String(reply));
-                return;
-            }
-
-            // 3) fallback (żeby nie było [brak odpowiedzi])
-            if (data && data.success === true) {
-                addBubble('assistant', 'OK.');
-                return;
-            }
-
-            addBubble('assistant', 'Brak treści odpowiedzi. Oto surowy JSON:\n' + JSON.stringify(raw, null, 2));
+            return await res.json();
         }
 
-        async function sendStlQuote(file, material) {
+        async function sendStlFile(file, material) {
             const fd = new FormData();
-            // na wszelki wypadek podajemy oba klucze - zależnie jak masz w server.js
-            fd.append('model', file, file.name);
-            fd.append('file', file, file.name);
+            fd.append('file', file);
             fd.append('material', material);
             fd.append('sessionId', sessionId);
 
-            const r = await fetch('/api/quote-from-stl', { method: 'POST', body: fd });
-            const raw = await r.json().catch(() => ({}));
-            const data = normalizeResponse(raw);
-
-            const quote = extractQuote(data);
-            if (quote) {
-                setQuotePanel(quote);
-                addBubble('assistant',
-                    `Wycena STL gotowa.\n` +
-                    `JOB: ${quote.jobExtId || '—'}\n` +
-                    `Suma: ${money(quote.total, quote.currency || 'PLN')}`
-                );
-                return;
-            }
-
-            if (data && data.success === true) {
-                addBubble('assistant', 'Plik przetworzony (brak danych wyceny w odpowiedzi).');
-                return;
-            }
-
-            addBubble('assistant', 'Błąd wyceny STL. Surowy JSON:\n' + JSON.stringify(raw, null, 2));
+            const res = await fetch('/api/quote-from-stl', {
+                method: 'POST',
+                body: fd
+            });
+            return await res.json();
         }
 
-        // ====== UI LOGIC ======
+        function extractBotReply(payload) {
+            // Prefer explicit "reply" field
+            if (payload && typeof payload.reply === 'string' && payload.reply.trim()) return payload.reply;
+
+            // If server returns raw n8n output
+            const raw = payload?.raw;
+            if (raw) {
+                // n8n might return {reply:"..."}
+                if (typeof raw.reply === 'string' && raw.reply.trim()) return raw.reply;
+                // n8n might return array
+                if (Array.isArray(raw) && raw[0] && typeof raw[0].reply === 'string') return raw[0].reply;
+            }
+
+            return null;
+        }
+
+        // ===== Send handler =====
+        let isSending = false;
+
         async function onSend() {
-            if (sendBtn.disabled) return;
+            if (isSending) return;
 
-            const text = (inputEl.value || '').trim();
-            const material = matEl.value || 'PLA';
+            const text = $('message').value.trim();
+            const material = $('material').value;
 
-            // Priorytet: jeśli wybrano plik -> wysyłamy plik
-            if (selectedFile) {
-                addBubble('user', `Wysyłam STL: ${selectedFile.name}\nMateriał: ${material}`);
-                inputEl.value = '';
-                sendBtn.disabled = true;
-                try {
-                    await sendStlQuote(selectedFile, material);
-                } finally {
-                    sendBtn.disabled = false;
-                    clearSelectedFile();
-                }
-                return;
-            }
+            if (!text && !selectedFile) return;
 
-            // Normalna wiadomość
-            if (!text) return;
-            addBubble('user', text);
-            inputEl.value = '';
+            isSending = true;
+            $('sendBtn').disabled = true;
 
-            sendBtn.disabled = true;
             try {
-                await sendTextMessage(text);
+                if (selectedFile) {
+                    // show user message
+                    addMessage('Ty', `Wysyłam STL: ${selectedFile.name}\nMateriał: ${material}`);
+
+                    const data = await sendStlFile(selectedFile, material);
+
+                    // clear file selection
+                    $('file').value = '';
+                    selectedFile = null;
+                    $('fileName').textContent = 'Nie wybrano pliku';
+
+                    if (!data?.success) {
+                        addMessage('OLIG3D', 'Błąd wyceny STL.');
+                    } else {
+                        const quote = normalizeQuotePayload(data);
+                        if (quote) {
+                            updateSummaryFromQuote(quote);
+                            addMessage('OLIG3D', 'Wycena STL:', makeQuoteCard(quote));
+                        } else {
+                            // fallback – pokaż surowy JSON, żebyś widział co wraca
+                            addMessage('OLIG3D', 'Brak danych do wyświetlenia. Surowa odpowiedź:\n' + JSON.stringify(data, null, 2));
+                        }
+                    }
+                }
+
+                if (text) {
+                    addMessage('Ty', text);
+                    $('message').value = '';
+
+                    const data = await sendTextMessage(text);
+
+                    if (!data?.success) {
+                        addMessage('OLIG3D', 'Błąd żądania.');
+                    } else {
+                        // 1) jeśli przyjdzie quote (np. z JOB-xxxx), pokaż kartę
+                        const quote = normalizeQuotePayload(data);
+                        if (quote && (quote.total || quote.breakdown || quote.material || quote.time)) {
+                            updateSummaryFromQuote(quote);
+                            addMessage('OLIG3D', 'Szczegóły JOB:', makeQuoteCard(quote));
+                            const replyText = extractBotReply(data);
+                            if (replyText) addMessage('OLIG3D', replyText);
+                        } else {
+                            // 2) normalna odpowiedź tekstowa
+                            const reply = extractBotReply(data);
+                            if (reply) {
+                                addMessage('OLIG3D', reply);
+                            } else {
+                                // 3) fallback
+                                addMessage('OLIG3D', '[brak odpowiedzi]\nSurowa odpowiedź:\n' + JSON.stringify(data, null, 2));
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+                addMessage('OLIG3D', 'Błąd połączenia z serwerem.');
             } finally {
-                sendBtn.disabled = false;
+                isSending = false;
+                $('sendBtn').disabled = false;
             }
         }
 
-        // ====== EVENTS ======
-        sendBtn.addEventListener('click', onSend);
-        inputEl.addEventListener('keydown', (e) => {
+        $('sendBtn').addEventListener('click', onSend);
+        $('message').addEventListener('keydown', (e) => {
             if (e.key === 'Enter') onSend();
         });
 
-        stlInputEl.addEventListener('change', () => {
-            const f = stlInputEl.files && stlInputEl.files[0];
-            if (!f) return;
-            selectedFile = f;
-            showSelectedFile(f);
-            // NIE wysyłamy automatycznie. Wysyłka dopiero po kliknięciu "Wyślij".
+        $('newChat').addEventListener('click', () => {
+            localStorage.removeItem('olig3d_sessionId');
+            sessionId = newSessionId();
+            localStorage.setItem('olig3d_sessionId', sessionId);
+            $('sessInfo').textContent = 'Sesja: ' + sessionId.replace('sess_', '');
+            $('chat').innerHTML = '';
+            $('message').value = '';
+            $('file').value = '';
+            selectedFile = null;
+            $('fileName').textContent = 'Nie wybrano pliku';
+
+            // reset summary
+            $('sumTotal').textContent = '0.00 PLN';
+            $('sumJob').textContent = 'JOB —';
+            $('sumMaterial').textContent = '—';
+            $('sumWeight').textContent = '—';
+            $('sumTime').textContent = '—';
+            $('sumDims').textContent = '—';
+            $('sumVol').textContent = '—';
+            $('sumMatCost').textContent = '—';
+            $('sumTimeCost').textContent = '—';
+            $('sumEnergyCost').textContent = '—';
+            $('sumMargin').textContent = '—';
+
+            addMessage('OLIG3D', 'Cześć! Napisz wiadomość lub wybierz STL i kliknij „Wyślij”.');
         });
 
-        clearFileEl.addEventListener('click', clearSelectedFile);
-
-        newChatEl.addEventListener('click', () => {
-            // reset sesji + UI
-            sessionId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now());
-            messagesEl.innerHTML = '';
-            inputEl.value = '';
-            clearSelectedFile();
-            setQuotePanel(null);
-            addBubble('assistant', 'Nowa rozmowa rozpoczęta.');
-        });
-
-        // Init
-        setQuotePanel(null);
-        addBubble('assistant', 'Cześć! Napisz wiadomość albo wybierz STL i kliknij „Wyślij”.');
+        // initial welcome
+        addMessage('OLIG3D', 'Cześć! Napisz wiadomość lub wybierz STL i kliknij „Wyślij”.');
     </script>
 </body>
 

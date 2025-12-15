@@ -15,7 +15,6 @@
             --text: #EAF0FF;
             --muted: rgba(234, 240, 255, 0.70);
             --blue: #2E7BFF;
-            --blue2: #1F61FF;
             --shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
         }
 
@@ -25,17 +24,16 @@
 
         body {
             margin: 0;
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
             color: var(--text);
             min-height: 100vh;
-            background:
-                radial-gradient(900px 500px at 50% 5%, rgba(46, 123, 255, 0.35), transparent 60%),
+            background: radial-gradient(900px 500px at 50% 5%, rgba(46, 123, 255, 0.35), transparent 60%),
                 radial-gradient(600px 380px at 15% 85%, rgba(160, 80, 255, 0.25), transparent 60%),
                 radial-gradient(700px 420px at 85% 80%, rgba(0, 220, 255, 0.15), transparent 60%),
                 linear-gradient(180deg, var(--bg1), var(--bg2));
             display: flex;
-            align-items: flex-start;
             justify-content: center;
+            align-items: flex-start;
             padding: 48px 16px;
         }
 
@@ -44,21 +42,20 @@
         }
 
         h1 {
-            margin: 0 0 22px 0;
             text-align: center;
             font-weight: 800;
             letter-spacing: 0.5px;
+            font-size: 42px;
             text-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
-            font-size: 44px;
+            margin-bottom: 22px;
         }
 
         .panel {
-            border-radius: 28px;
             background: rgba(0, 0, 0, 0.22);
             border: 1px solid rgba(255, 255, 255, 0.10);
+            border-radius: 28px;
             box-shadow: var(--shadow);
             padding: 18px;
-            backdrop-filter: blur(10px);
         }
 
         .chatbox {
@@ -92,7 +89,6 @@
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
             white-space: pre-wrap;
             word-break: break-word;
-            position: relative;
         }
 
         .user .bubble {
@@ -115,7 +111,7 @@
 
         .composer {
             display: flex;
-            gap: 12px;
+            gap: 8px;
             align-items: center;
             margin-top: 14px;
         }
@@ -131,28 +127,15 @@
             outline: none;
         }
 
-        .input::placeholder {
-            color: rgba(234, 240, 255, 0.55);
-        }
-
         .btn {
             height: 44px;
             padding: 0 16px;
             border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.10);
             background: rgba(46, 123, 255, 0.95);
-            color: white;
+            color: #fff;
             font-weight: 800;
             cursor: pointer;
-            user-select: none;
-        }
-
-        .btn:hover {
-            filter: brightness(1.06);
-        }
-
-        .btn.secondary {
-            background: rgba(46, 123, 255, 0.90);
         }
 
         .material {
@@ -162,13 +145,12 @@
             background: rgba(0, 0, 0, 0.28);
             color: var(--text);
             padding: 0 10px;
-            outline: none;
-            min-width: 120px;
+            min-width: 100px;
         }
 
         .newchat {
-            margin-top: 10px;
             text-align: center;
+            margin-top: 12px;
         }
 
         .newchat a {
@@ -177,7 +159,6 @@
             cursor: pointer;
         }
 
-        /* Cards inside bot bubble */
         .card {
             background: rgba(0, 0, 0, 0.20);
             border: 1px solid rgba(255, 255, 255, 0.10);
@@ -194,37 +175,25 @@
         .kv {
             display: flex;
             justify-content: space-between;
-            gap: 14px;
-            padding: 6px 0;
+            padding: 4px 0;
             border-top: 1px dashed rgba(255, 255, 255, 0.12);
         }
 
         .kv:first-of-type {
             border-top: none;
-            padding-top: 0;
-        }
-
-        .k {
-            color: var(--muted);
-        }
-
-        .v {
-            font-weight: 800;
         }
 
         .big {
             text-align: center;
-            font-size: 34px;
-            font-weight: 950;
-            margin: 8px 0 10px 0;
-            letter-spacing: 0.4px;
+            font-size: 30px;
+            font-weight: 900;
+            margin: 8px 0;
         }
 
         .sub {
             text-align: center;
             color: var(--muted);
             font-size: 12px;
-            margin-top: -6px;
             margin-bottom: 10px;
         }
 
@@ -234,21 +203,9 @@
             gap: 10px;
         }
 
-        @media (max-width: 720px) {
-            h1 {
-                font-size: 34px;
-            }
-
-            .chatbox {
-                height: 520px;
-            }
-
+        @media(max-width:720px) {
             .grid2 {
                 grid-template-columns: 1fr;
-            }
-
-            .material {
-                display: none;
             }
         }
     </style>
@@ -257,301 +214,111 @@
 <body>
     <div class="wrap">
         <h1>Chatbot OLIG3D</h1>
-
         <div class="panel">
-            <div id="chatbox" class="chatbox" aria-live="polite"></div>
-
+            <div id="chatbox" class="chatbox"></div>
             <div class="composer">
-                <input id="messageInput" class="input" type="text" placeholder="Napisz wiadomość..."
-                    autocomplete="off" />
-                <select id="materialSelect" class="material" title="Materiał dla wyceny STL">
-                    <option value="PLA" selected>PLA</option>
-                    <option value="PETG">PETG</option>
-                    <option value="ASA">ASA</option>
-                    <option value="ABS">ABS</option>
-                    <option value="TPU">TPU</option>
-                </select>
+                <input id="messageInput" class="input" placeholder="Napisz wiadomość..." />
                 <button id="sendBtn" class="btn">Wyślij</button>
-                <button id="stlBtn" class="btn secondary">STL</button>
-                <input id="fileInput" type="file" accept=".stl,.obj" style="display:none" />
+                <button id="stlBtn" class="btn">STL</button>
+                <select id="materialSelect" class="material">
+                    <option>PLA</option>
+                    <option>PETG</option>
+                    <option>ASA</option>
+                    <option>ABS</option>
+                    <option>TPU</option>
+                </select>
+                <input id="fileInput" type="file" accept=".stl,.obj" hidden />
             </div>
-
-            <div class="newchat">
-                <a id="newChatLink">Zacznij nową rozmowę</a>
-            </div>
+            <div class="newchat"><a id="newChatLink">Zacznij nową rozmowę</a></div>
         </div>
     </div>
 
     <script>
-        // ====== STATE (bez localStorage – historia tylko w aktualnym widoku) ======
-        let sessionId = null;
+        let sessionId = crypto.randomUUID();
+        let pendingFile = null; // plik do wysyłki po kliknięciu "Wyślij"
 
-        function newSessionId() {
-            try { return crypto.randomUUID(); } catch { return 'sess-' + Math.random().toString(16).slice(2) + Date.now(); }
-        }
-
-        function setNewChatState() {
-            sessionId = newSessionId();
-            chatbox.innerHTML = '';
-        }
-
-        // ====== DOM ======
-        const chatbox = document.getElementById('chatbox');
+        const chat = document.getElementById('chatbox');
         const input = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
         const stlBtn = document.getElementById('stlBtn');
         const fileInput = document.getElementById('fileInput');
-        const newChatLink = document.getElementById('newChatLink');
-        const materialSelect = document.getElementById('materialSelect');
+        const materialSel = document.getElementById('materialSelect');
+        const newChat = document.getElementById('newChatLink');
 
-        // ====== UI HELPERS ======
-        function scrollToBottom() {
-            chatbox.scrollTop = chatbox.scrollHeight;
-        }
+        const API_CHAT = '/api/chat';
+        const API_QUOTE = '/api/quote/';
+        const API_STL = '/api/quote-from-stl';
 
-        function addBubble(role, content, isHtml = false) {
+        const addMsg = (role, text, html = false) => {
             const row = document.createElement('div');
-            row.className = 'row ' + (role === 'user' ? 'user' : 'bot');
-
+            row.className = 'row ' + role;
             const bubble = document.createElement('div');
             bubble.className = 'bubble';
+            bubble.innerHTML = `<span class="badge">${role === 'user' ? 'Ty:' : 'OLIG3D:'}</span>` + (html ? text : text.replace(/</g, '&lt;'));
+            row.appendChild(bubble); chat.appendChild(row); chat.scrollTop = chat.scrollHeight;
+        };
 
-            const badge = document.createElement('span');
-            badge.className = 'badge';
-            badge.textContent = role === 'user' ? 'Ty:' : 'OLIG3D:';
-            bubble.appendChild(badge);
-
-            const body = document.createElement('div');
-            if (isHtml) body.innerHTML = content;
-            else body.textContent = content;
-
-            bubble.appendChild(body);
-            row.appendChild(bubble);
-            chatbox.appendChild(row);
-            scrollToBottom();
-        }
-
-        function unwrapFirst(data) {
-            if (!data) return null;
-            if (Array.isArray(data)) return data[0] ?? null;
-            if (typeof data === 'object' && Array.isArray(data.data)) return data.data[0] ?? data;
-            return data;
-        }
-
-        function extractReply(data) {
-            const d = unwrapFirst(data);
-            if (!d) return null;
-            if (typeof d === 'string') return d;
-            if (typeof d.reply === 'string' && d.reply.trim()) return d.reply;
-            if (typeof d.message === 'string' && d.message.trim()) return d.message;
-            return null;
-        }
-
-        function money(val, currency = 'PLN') {
-            if (val === null || val === undefined || val === '') return '-';
-            const n = Number(val);
-            if (Number.isFinite(n)) return n.toFixed(2) + ' ' + currency;
-            return String(val) + ' ' + currency;
-        }
-
-        function renderQuoteCardFromQuoteApi(item) {
-            const currency = item.currency || 'PLN';
-            const job = item.jobExtId || item.jobId || '-';
-            const total = money(item.total, currency);
-
-            const b = item.breakdown || {};
-            const t = item.time || {};
-            const m = item.material || {};
-            const e = item.energy || {};
-            const meta = item.meta || {};
-
+        const renderQuote = q => {
+            const c = q.currency || 'PLN', b = q.breakdown || {}, m = q.material || {}, t = q.time || {}, meta = q.meta || {}, job = q.jobExtId || q.jobId || '-';
             return `
-        <div class="card">
-          <div class="title">Wycena JOB</div>
-          <div class="sub">${job}</div>
-          <div class="big">${total}</div>
-
-          <div class="grid2">
-            <div class="card" style="background: rgba(255,255,255,0.04);">
-              <div class="title" style="font-size:14px;margin-bottom:6px;">Czas druku</div>
-              <div class="kv"><div class="k">Czas</div><div class="v">${t.hhmmss || (t.minutes ? (t.minutes + ' min') : '-')}</div></div>
-              <div class="kv"><div class="k">Stawka</div><div class="v">${t.ratePerH ? (Number(t.ratePerH).toFixed(2) + ' PLN/h') : '-'}</div></div>
-              <div class="kv"><div class="k">Koszt</div><div class="v">${money(b.timeCost, currency)}</div></div>
-            </div>
-
-            <div class="card" style="background: rgba(255,255,255,0.04);">
-              <div class="title" style="font-size:14px;margin-bottom:6px;">Materiał / energia / marża</div>
-              <div class="kv"><div class="k">Materiał</div><div class="v">${m.material || '-'}</div></div>
-              <div class="kv"><div class="k">Waga</div><div class="v">${m.grams ? (Number(m.grams).toFixed(2) + ' g') : '-'}</div></div>
-              <div class="kv"><div class="k">Materiał koszt</div><div class="v">${money(b.materialCost, currency)}</div></div>
-              <div class="kv"><div class="k">Energia koszt</div><div class="v">${money(b.energyCost, currency)}</div></div>
-              <div class="kv"><div class="k">Marża</div><div class="v">${money(b.margin, currency)}${meta.marginPercent !== undefined ? (' (' + meta.marginPercent + '%)') : ''}</div></div>
-            </div>
+      <div class="card">
+        <div class="title">Wycena STL</div>
+        <div class="sub">${q.filename || job}</div>
+        <div class="big">${(q.total ?? 0).toFixed(2)} ${c}</div>
+        <div class="kv"><div>Materiał</div><div>${m.material || '-'}</div></div>
+        <div class="kv"><div>Waga</div><div>${m.grams ? m.grams.toFixed(2) + ' g' : '-'}</div></div>
+        <div class="kv"><div>Czas</div><div>${t.hhmmss || '-'}</div></div>
+        <div class="kv"><div>Wymiary</div><div>${q.dimensions || '-'}</div></div>
+        <div class="kv"><div>Objętość</div><div>${q.volume ? Number(q.volume).toFixed(2) + ' cm³' : '-'}</div></div>
+        <div class="grid2" style="margin-top:10px;">
+          <div class="card"><div class="title" style="font-size:14px;">Składowe</div>
+            <div class="kv"><div>Czas pracy</div><div>${b.timeCost?.toFixed(2)} ${c}</div></div>
+            <div class="kv"><div>Materiał</div><div>${b.materialCost?.toFixed(2)} ${c}</div></div>
+            <div class="kv"><div>Energia</div><div>${b.energyCost?.toFixed(2)} ${c}</div></div>
+            <div class="kv"><div>Marża</div><div>${b.margin?.toFixed(2)} ${c}</div></div>
           </div>
         </div>
-      `;
-        }
+      </div>`;
+        };
 
-        function renderQuoteCardFromUploadApi(quote) {
-            const currency = quote.currency || 'PLN';
-            const job = quote.jobExtId || quote.jobId || '-';
-            const total = money(quote.total, currency);
-
-            const b = quote.breakdown || {};
-            const t = quote.time || {};
-            const m = quote.material || {};
-            const e = quote.energy || {};
-            const meta = quote.meta || {};
-
-            return `
-        <div class="card">
-          <div class="title">Wycena STL</div>
-          <div class="sub">${quote.filename ? quote.filename : job}</div>
-          <div class="big">${total}</div>
-
-          <div class="kv"><div class="k">JOB</div><div class="v">${job}</div></div>
-          <div class="kv"><div class="k">Materiał</div><div class="v">${m.material || '-'}</div></div>
-          <div class="kv"><div class="k">Waga</div><div class="v">${m.grams ? (Number(m.grams).toFixed(2) + ' g') : '-'}</div></div>
-          <div class="kv"><div class="k">Czas</div><div class="v">${t.hhmmss || (t.minutes ? (t.minutes + ' min') : '-')}</div></div>
-          <div class="kv"><div class="k">Wymiary</div><div class="v">${quote.dimensions || '-'}</div></div>
-          <div class="kv"><div class="k">Objętość</div><div class="v">${quote.volume !== undefined ? (Number(quote.volume).toFixed(2) + ' cm³') : '-'}</div></div>
-
-          <div class="card" style="margin-top:10px;background: rgba(255,255,255,0.04);">
-            <div class="title" style="font-size:14px;margin-bottom:6px;">Składowe ceny</div>
-            <div class="kv"><div class="k">Czas pracy</div><div class="v">${money(b.timeCost, currency)}</div></div>
-            <div class="kv"><div class="k">Materiał</div><div class="v">${money(b.materialCost, currency)}</div></div>
-            <div class="kv"><div class="k">Energia</div><div class="v">${money(b.energyCost, currency)}</div></div>
-            <div class="kv"><div class="k">Marża</div><div class="v">${money(b.margin, currency)}${meta.marginPercent !== undefined ? (' (' + (meta.marginPercent * 100) + '%)') : ''}</div></div>
-          </div>
-        </div>
-      `;
-        }
-
-        // ====== API CALLS ======
-        async function callChatApi(text) {
-            const payload = {
-                message: text,
-                sessionId,
-                source: 'web-3d.olig.site',
-            };
-
-            const res = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-
-            const data = await res.json().catch(() => null);
-
-            // jeśli backend zwróci sessionId, aktualizuj (w pamięci)
-            const d = unwrapFirst(data);
-            if (d && typeof d === 'object' && d.sessionId) sessionId = d.sessionId;
-
-            return data;
-        }
-
-        async function callQuoteApi(jobExtId) {
-            const res = await fetch('/api/quote/' + encodeURIComponent(jobExtId), { method: 'GET' });
-            const data = await res.json().catch(() => null);
-            return data;
-        }
-
-        async function callQuoteFromStlApi(file, material) {
-            const form = new FormData();
-            // UWAGA: server.js oczekuje pola "model"
-            form.append('model', file, file.name);
-            form.append('material', material);
-
-            const res = await fetch('/api/quote-from-stl', {
-                method: 'POST',
-                body: form,
-            });
-
-            const data = await res.json().catch(() => null);
-            return data;
-        }
-
-        // ====== ACTIONS ======
         async function sendMessage() {
-            const text = (input.value || '').trim();
-            if (!text) return;
-
-            addBubble('user', text);
+            const msg = input.value.trim();
+            if (!msg && !pendingFile) return;
+            addMsg('user', msg || ('[plik: ' + pendingFile.name + ']'));
             input.value = '';
-
-            const isJob = /^JOB-\d+$/i.test(text);
-
-            if (isJob) {
-                const job = text.toUpperCase();
-                try {
-                    const data = await callQuoteApi(job);
-                    const item = unwrapFirst(data);
-
-                    if (item && item.success === true) {
-                        addBubble('bot', renderQuoteCardFromQuoteApi(item), true);
-                    } else {
-                        addBubble('bot', 'JOB nie znaleziony albo błąd wyceny.');
-                    }
-                } catch (e) {
-                    addBubble('bot', 'Błąd zapytania JOB.');
-                }
+            if (pendingFile) {
+                const fd = new FormData();
+                fd.append('model', pendingFile, pendingFile.name);
+                fd.append('material', materialSel.value);
+                const r = await fetch(API_STL, { method: 'POST', body: fd });
+                const d = await r.json();
+                const q = d?.quote;
+                if (d?.success && q) addMsg('bot', renderQuote(q), true);
+                else addMsg('bot', 'Błąd wyceny STL.');
+                pendingFile = null;
                 return;
             }
-
-            try {
-                const data = await callChatApi(text);
-                const reply = extractReply(data) || '[brak odpowiedzi]';
-                addBubble('bot', reply);
-            } catch (e) {
-                addBubble('bot', 'Błąd API /api/chat.');
-            }
+            // normalne wiadomości
+            const res = await fetch(API_CHAT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg, sessionId }) });
+            const data = await res.json().catch(() => null);
+            const reply = data?.reply || data?.output?.reply || data?.result?.reply || 'Echo: ' + msg;
+            addMsg('bot', reply);
         }
 
-        async function pickAndUploadStl() {
-            fileInput.value = '';
-            fileInput.click();
+        async function handleJob(msg) {
+            const job = msg.trim().toUpperCase();
+            const r = await fetch(API_QUOTE + job);
+            const d = await r.json();
+            const q = d?.quote || d;
+            if (q) addMsg('bot', renderQuote(q), true);
+            else addMsg('bot', 'Nie znaleziono ' + job);
         }
 
-        async function handleFileSelected() {
-            const file = fileInput.files && fileInput.files[0];
-            if (!file) return;
-
-            const material = (materialSelect && materialSelect.value) ? materialSelect.value : 'PLA';
-
-            addBubble('user', `Wgrywam STL: ${file.name}`);
-
-            try {
-                const data = await callQuoteFromStlApi(file, material);
-                const d = unwrapFirst(data);
-
-                // server.js zwraca { success, geometry, quote }
-                const quote = d && d.quote ? d.quote : null;
-
-                if (d && d.success === true && quote) {
-                    addBubble('bot', renderQuoteCardFromUploadApi(quote), true);
-                } else {
-                    addBubble('bot', 'Błąd wyceny STL.');
-                }
-            } catch (e) {
-                addBubble('bot', 'Błąd wyceny STL.');
-            }
-        }
-
-        // ====== EVENTS ======
-        sendBtn.addEventListener('click', sendMessage);
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') sendMessage();
-        });
-
-        stlBtn.addEventListener('click', pickAndUploadStl);
-        fileInput.addEventListener('change', handleFileSelected);
-
-        newChatLink.addEventListener('click', () => {
-            setNewChatState();
-        });
-
-        // ====== INIT ======
-        setNewChatState();
+        sendBtn.onclick = sendMessage;
+        input.onkeydown = e => { if (e.key === 'Enter') sendMessage(); };
+        stlBtn.onclick = () => fileInput.click();
+        fileInput.onchange = () => { pendingFile = fileInput.files[0]; if (pendingFile) addMsg('user', 'Wybrano plik: ' + pendingFile.name); };
+        newChat.onclick = () => { chat.innerHTML = ''; sessionId = crypto.randomUUID(); pendingFile = null; };
     </script>
 </body>
 

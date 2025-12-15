@@ -2,80 +2,78 @@
 <html lang="pl">
 
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Chatbot OLIG3D</title>
-
     <style>
         :root {
-            --bg: #0b0f16;
-            --card: #101826;
-            --card2: #0e1522;
-            --text: #e8eefc;
-            --muted: #9fb0d0;
-            --bubble: #1a2436;
-            --bubble2: #0f3dff;
-            --bubble2text: #ffffff;
-            --line: rgba(255, 255, 255, .08);
-            --shadow: 0 18px 60px rgba(0, 0, 0, .55);
-            --radius: 26px;
+            --bg1: #070A10;
+            --bg2: #0A1222;
+            --card: rgba(255, 255, 255, 0.06);
+            --card2: rgba(255, 255, 255, 0.08);
+            --border: rgba(255, 255, 255, 0.10);
+            --text: #EAF0FF;
+            --muted: rgba(234, 240, 255, 0.70);
+            --blue: #2E7BFF;
+            --blue2: #1F61FF;
+            --shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
         }
 
         * {
-            box-sizing: border-box
-        }
-
-        html,
-        body {
-            height: 100%
+            box-sizing: border-box;
         }
 
         body {
             margin: 0;
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
             color: var(--text);
+            min-height: 100vh;
             background:
-                radial-gradient(900px 500px at 50% 10%, rgba(40, 120, 255, .22), transparent 60%),
-                radial-gradient(700px 450px at 10% 80%, rgba(140, 60, 255, .18), transparent 55%),
-                radial-gradient(700px 450px at 90% 80%, rgba(60, 255, 200, .10), transparent 55%),
-                var(--bg);
+                radial-gradient(900px 500px at 50% 5%, rgba(46, 123, 255, 0.35), transparent 60%),
+                radial-gradient(600px 380px at 15% 85%, rgba(160, 80, 255, 0.25), transparent 60%),
+                radial-gradient(700px 420px at 85% 80%, rgba(0, 220, 255, 0.15), transparent 60%),
+                linear-gradient(180deg, var(--bg1), var(--bg2));
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 48px 16px;
         }
 
         .wrap {
-            width: min(1100px, 92vw);
-            margin: 48px auto;
+            width: min(1080px, 96vw);
         }
 
         h1 {
-            margin: 0 0 18px 0;
+            margin: 0 0 22px 0;
             text-align: center;
-            letter-spacing: .6px;
             font-weight: 800;
-            font-size: 42px;
-            text-shadow: 0 6px 30px rgba(0, 0, 0, .55);
+            letter-spacing: 0.5px;
+            text-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+            font-size: 44px;
         }
 
-        .card {
-            background: linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .02));
-            border: 1px solid var(--line);
-            border-radius: var(--radius);
+        .panel {
+            border-radius: 28px;
+            background: rgba(0, 0, 0, 0.22);
+            border: 1px solid rgba(255, 255, 255, 0.10);
             box-shadow: var(--shadow);
-            padding: 22px;
+            padding: 18px;
+            backdrop-filter: blur(10px);
         }
 
         .chatbox {
-            height: min(62vh, 640px);
-            background: rgba(0, 0, 0, .22);
-            border: 1px solid var(--line);
-            border-radius: 24px;
+            height: 520px;
+            border-radius: 22px;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             padding: 18px;
             overflow: auto;
-            scroll-behavior: smooth;
         }
 
         .row {
             display: flex;
             margin: 10px 0;
+            gap: 12px;
         }
 
         .row.user {
@@ -87,89 +85,171 @@
         }
 
         .bubble {
-            max-width: min(74%, 720px);
-            background: var(--bubble);
-            border: 1px solid rgba(255, 255, 255, .06);
-            border-radius: 18px;
+            max-width: min(720px, 80%);
             padding: 12px 14px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
             white-space: pre-wrap;
             word-break: break-word;
+            position: relative;
         }
 
-        .row.user .bubble {
-            background: linear-gradient(180deg, rgba(15, 61, 255, .95), rgba(15, 61, 255, .75));
-            color: var(--bubble2text);
-            border: 1px solid rgba(255, 255, 255, .12);
+        .user .bubble {
+            background: linear-gradient(180deg, rgba(46, 123, 255, 0.95), rgba(31, 97, 255, 0.95));
+            border-color: rgba(255, 255, 255, 0.12);
         }
 
-        .meta {
+        .bot .bubble {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .badge {
+            display: block;
             font-size: 12px;
-            opacity: .8;
+            opacity: 0.9;
             margin-bottom: 6px;
-            letter-spacing: .2px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
         }
 
-        .inputbar {
+        .composer {
             display: flex;
             gap: 12px;
-            margin-top: 14px;
             align-items: center;
+            margin-top: 14px;
         }
 
-        #msg {
+        .input {
             flex: 1;
             height: 44px;
             border-radius: 12px;
-            border: 1px solid var(--line);
-            background: rgba(0, 0, 0, .22);
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            background: rgba(0, 0, 0, 0.28);
             color: var(--text);
             padding: 0 14px;
             outline: none;
         }
 
-        #msg:focus {
-            border-color: rgba(120, 170, 255, .55);
-            box-shadow: 0 0 0 4px rgba(60, 120, 255, .16);
+        .input::placeholder {
+            color: rgba(234, 240, 255, 0.55);
         }
 
-        button {
+        .btn {
             height: 44px;
             padding: 0 16px;
             border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, .10);
-            background: #1f5eff;
-            color: #fff;
-            font-weight: 700;
-            cursor: pointer;
-            transition: transform .06s ease, opacity .15s ease, filter .15s ease;
-        }
-
-        button:active {
-            transform: scale(.985);
-        }
-
-        button:disabled {
-            opacity: .55;
-            cursor: not-allowed;
-            filter: saturate(.5);
-        }
-
-        #stlBtn {
-            background: #1f5eff;
-        }
-
-        .link {
-            margin-top: 14px;
-            text-align: center;
-            color: rgba(180, 210, 255, .95);
-            text-decoration: underline;
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            background: rgba(46, 123, 255, 0.95);
+            color: white;
+            font-weight: 800;
             cursor: pointer;
             user-select: none;
         }
 
-        .link:hover {
-            opacity: .9;
+        .btn:hover {
+            filter: brightness(1.06);
+        }
+
+        .btn.secondary {
+            background: rgba(46, 123, 255, 0.90);
+        }
+
+        .material {
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            background: rgba(0, 0, 0, 0.28);
+            color: var(--text);
+            padding: 0 10px;
+            outline: none;
+            min-width: 120px;
+        }
+
+        .newchat {
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .newchat a {
+            color: rgba(234, 240, 255, 0.75);
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        /* Cards inside bot bubble */
+        .card {
+            background: rgba(0, 0, 0, 0.20);
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            border-radius: 14px;
+            padding: 12px;
+        }
+
+        .card .title {
+            font-weight: 900;
+            letter-spacing: 0.2px;
+            margin-bottom: 8px;
+        }
+
+        .kv {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 6px 0;
+            border-top: 1px dashed rgba(255, 255, 255, 0.12);
+        }
+
+        .kv:first-of-type {
+            border-top: none;
+            padding-top: 0;
+        }
+
+        .k {
+            color: var(--muted);
+        }
+
+        .v {
+            font-weight: 800;
+        }
+
+        .big {
+            text-align: center;
+            font-size: 34px;
+            font-weight: 950;
+            margin: 8px 0 10px 0;
+            letter-spacing: 0.4px;
+        }
+
+        .sub {
+            text-align: center;
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: -6px;
+            margin-bottom: 10px;
+        }
+
+        .grid2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        @media (max-width: 720px) {
+            h1 {
+                font-size: 34px;
+            }
+
+            .chatbox {
+                height: 520px;
+            }
+
+            .grid2 {
+                grid-template-columns: 1fr;
+            }
+
+            .material {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -178,271 +258,300 @@
     <div class="wrap">
         <h1>Chatbot OLIG3D</h1>
 
-        <div class="card">
-            <div id="chat" class="chatbox"></div>
+        <div class="panel">
+            <div id="chatbox" class="chatbox" aria-live="polite"></div>
 
-            <div class="inputbar">
-                <input id="msg" type="text" placeholder="Napisz wiadomość..." autocomplete="off" />
-                <button id="send">Wyślij</button>
-                <button id="stlBtn" type="button">STL</button>
-                <input id="stl" type="file" accept=".stl" style="display:none" />
+            <div class="composer">
+                <input id="messageInput" class="input" type="text" placeholder="Napisz wiadomość..."
+                    autocomplete="off" />
+                <select id="materialSelect" class="material" title="Materiał dla wyceny STL">
+                    <option value="PLA" selected>PLA</option>
+                    <option value="PETG">PETG</option>
+                    <option value="ASA">ASA</option>
+                    <option value="ABS">ABS</option>
+                    <option value="TPU">TPU</option>
+                </select>
+                <button id="sendBtn" class="btn">Wyślij</button>
+                <button id="stlBtn" class="btn secondary">STL</button>
+                <input id="fileInput" type="file" accept=".stl,.obj" style="display:none" />
             </div>
 
-            <div id="newChat" class="link">Zacznij nową rozmowę</div>
+            <div class="newchat">
+                <a id="newChatLink">Zacznij nową rozmowę</a>
+            </div>
         </div>
     </div>
 
     <script>
-        const chatEl = document.getElementById('chat');
-        const msgEl = document.getElementById('msg');
-        const sendBtn = document.getElementById('send');
+        // ====== STATE (bez localStorage – historia tylko w aktualnym widoku) ======
+        let sessionId = null;
+
+        function newSessionId() {
+            try { return crypto.randomUUID(); } catch { return 'sess-' + Math.random().toString(16).slice(2) + Date.now(); }
+        }
+
+        function setNewChatState() {
+            sessionId = newSessionId();
+            chatbox.innerHTML = '';
+        }
+
+        // ====== DOM ======
+        const chatbox = document.getElementById('chatbox');
+        const input = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
         const stlBtn = document.getElementById('stlBtn');
-        const stlInput = document.getElementById('stl');
-        const newChatBtn = document.getElementById('newChat');
+        const fileInput = document.getElementById('fileInput');
+        const newChatLink = document.getElementById('newChatLink');
+        const materialSelect = document.getElementById('materialSelect');
 
-        const API_CHAT = '/api/chat';
-        const API_QUOTE_BY_JOB = '/api/quote/';          // GET /api/quote/JOB-0001
-        const API_QUOTE_FROM_STL = '/api/quote-from-stl';// POST multipart
-
-        let messages = [];
-        let sessionId = null;     // NIE zapisujemy w storage -> po odświeżeniu znika
-        let lastJobExtId = null;
-
-        function makeSessionId() {
-            // UUID jest bezpieczny dla backendu i DB
-            if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
-            return 'sess-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+        // ====== UI HELPERS ======
+        function scrollToBottom() {
+            chatbox.scrollTop = chatbox.scrollHeight;
         }
 
-        function scrollBottom() {
-            chatEl.scrollTop = chatEl.scrollHeight;
+        function addBubble(role, content, isHtml = false) {
+            const row = document.createElement('div');
+            row.className = 'row ' + (role === 'user' ? 'user' : 'bot');
+
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+
+            const badge = document.createElement('span');
+            badge.className = 'badge';
+            badge.textContent = role === 'user' ? 'Ty:' : 'OLIG3D:';
+            bubble.appendChild(badge);
+
+            const body = document.createElement('div');
+            if (isHtml) body.innerHTML = content;
+            else body.textContent = content;
+
+            bubble.appendChild(body);
+            row.appendChild(bubble);
+            chatbox.appendChild(row);
+            scrollToBottom();
         }
 
-        function renderAll() {
-            chatEl.innerHTML = '';
-            for (const m of messages) {
-                const row = document.createElement('div');
-                row.className = 'row ' + (m.role === 'user' ? 'user' : 'bot');
-
-                const bubble = document.createElement('div');
-                bubble.className = 'bubble';
-
-                const meta = document.createElement('div');
-                meta.className = 'meta';
-                meta.textContent = (m.role === 'user') ? 'Ty:' : 'OLIG3D:';
-
-                bubble.appendChild(meta);
-                bubble.appendChild(document.createTextNode(m.text));
-
-                row.appendChild(bubble);
-                chatEl.appendChild(row);
-            }
-            scrollBottom();
+        function unwrapFirst(data) {
+            if (!data) return null;
+            if (Array.isArray(data)) return data[0] ?? null;
+            if (typeof data === 'object' && Array.isArray(data.data)) return data.data[0] ?? data;
+            return data;
         }
 
-        function add(role, text) {
-            messages.push({ role, text: String(text ?? '') });
-            renderAll();
+        function extractReply(data) {
+            const d = unwrapFirst(data);
+            if (!d) return null;
+            if (typeof d === 'string') return d;
+            if (typeof d.reply === 'string' && d.reply.trim()) return d.reply;
+            if (typeof d.message === 'string' && d.message.trim()) return d.message;
+            return null;
         }
 
-        function setBusy(isBusy) {
-            sendBtn.disabled = isBusy;
-            stlBtn.disabled = isBusy;
-            msgEl.disabled = isBusy;
+        function money(val, currency = 'PLN') {
+            if (val === null || val === undefined || val === '') return '-';
+            const n = Number(val);
+            if (Number.isFinite(n)) return n.toFixed(2) + ' ' + currency;
+            return String(val) + ' ' + currency;
         }
 
-        async function safeJson(resp) {
-            const ct = (resp.headers.get('content-type') || '').toLowerCase();
-            if (ct.includes('application/json')) return await resp.json();
-            const txt = await resp.text();
-            try { return JSON.parse(txt); } catch { return { raw: txt }; }
+        function renderQuoteCardFromQuoteApi(item) {
+            const currency = item.currency || 'PLN';
+            const job = item.jobExtId || item.jobId || '-';
+            const total = money(item.total, currency);
+
+            const b = item.breakdown || {};
+            const t = item.time || {};
+            const m = item.material || {};
+            const e = item.energy || {};
+            const meta = item.meta || {};
+
+            return `
+        <div class="card">
+          <div class="title">Wycena JOB</div>
+          <div class="sub">${job}</div>
+          <div class="big">${total}</div>
+
+          <div class="grid2">
+            <div class="card" style="background: rgba(255,255,255,0.04);">
+              <div class="title" style="font-size:14px;margin-bottom:6px;">Czas druku</div>
+              <div class="kv"><div class="k">Czas</div><div class="v">${t.hhmmss || (t.minutes ? (t.minutes + ' min') : '-')}</div></div>
+              <div class="kv"><div class="k">Stawka</div><div class="v">${t.ratePerH ? (Number(t.ratePerH).toFixed(2) + ' PLN/h') : '-'}</div></div>
+              <div class="kv"><div class="k">Koszt</div><div class="v">${money(b.timeCost, currency)}</div></div>
+            </div>
+
+            <div class="card" style="background: rgba(255,255,255,0.04);">
+              <div class="title" style="font-size:14px;margin-bottom:6px;">Materiał / energia / marża</div>
+              <div class="kv"><div class="k">Materiał</div><div class="v">${m.material || '-'}</div></div>
+              <div class="kv"><div class="k">Waga</div><div class="v">${m.grams ? (Number(m.grams).toFixed(2) + ' g') : '-'}</div></div>
+              <div class="kv"><div class="k">Materiał koszt</div><div class="v">${money(b.materialCost, currency)}</div></div>
+              <div class="kv"><div class="k">Energia koszt</div><div class="v">${money(b.energyCost, currency)}</div></div>
+              <div class="kv"><div class="k">Marża</div><div class="v">${money(b.margin, currency)}${meta.marginPercent !== undefined ? (' (' + meta.marginPercent + '%)') : ''}</div></div>
+            </div>
+          </div>
+        </div>
+      `;
         }
 
-        function looksLikeBackendJsonError(s) {
-            const t = String(s || '').toLowerCase();
-            return t.includes('invalid input syntax for type json')
-                || t.includes('token "') && t.includes('" is invalid')
-                || t.includes('syntax error') && t.includes('json')
-                || t.includes('[brak odpowiedzi]');
+        function renderQuoteCardFromUploadApi(quote) {
+            const currency = quote.currency || 'PLN';
+            const job = quote.jobExtId || quote.jobId || '-';
+            const total = money(quote.total, currency);
+
+            const b = quote.breakdown || {};
+            const t = quote.time || {};
+            const m = quote.material || {};
+            const e = quote.energy || {};
+            const meta = quote.meta || {};
+
+            return `
+        <div class="card">
+          <div class="title">Wycena STL</div>
+          <div class="sub">${quote.filename ? quote.filename : job}</div>
+          <div class="big">${total}</div>
+
+          <div class="kv"><div class="k">JOB</div><div class="v">${job}</div></div>
+          <div class="kv"><div class="k">Materiał</div><div class="v">${m.material || '-'}</div></div>
+          <div class="kv"><div class="k">Waga</div><div class="v">${m.grams ? (Number(m.grams).toFixed(2) + ' g') : '-'}</div></div>
+          <div class="kv"><div class="k">Czas</div><div class="v">${t.hhmmss || (t.minutes ? (t.minutes + ' min') : '-')}</div></div>
+          <div class="kv"><div class="k">Wymiary</div><div class="v">${quote.dimensions || '-'}</div></div>
+          <div class="kv"><div class="k">Objętość</div><div class="v">${quote.volume !== undefined ? (Number(quote.volume).toFixed(2) + ' cm³') : '-'}</div></div>
+
+          <div class="card" style="margin-top:10px;background: rgba(255,255,255,0.04);">
+            <div class="title" style="font-size:14px;margin-bottom:6px;">Składowe ceny</div>
+            <div class="kv"><div class="k">Czas pracy</div><div class="v">${money(b.timeCost, currency)}</div></div>
+            <div class="kv"><div class="k">Materiał</div><div class="v">${money(b.materialCost, currency)}</div></div>
+            <div class="kv"><div class="k">Energia</div><div class="v">${money(b.energyCost, currency)}</div></div>
+            <div class="kv"><div class="k">Marża</div><div class="v">${money(b.margin, currency)}${meta.marginPercent !== undefined ? (' (' + (meta.marginPercent * 100) + '%)') : ''}</div></div>
+          </div>
+        </div>
+      `;
         }
 
-        function formatJobQuote(jobExtId, quoteObj) {
-            const q = quoteObj || {};
-            const job = jobExtId || q.jobExtId || q.job_ext_id || q.new_job_ext_id || null;
-            const material = q.material || q?.pricing?.material || 'PLA';
+        // ====== API CALLS ======
+        async function callChatApi(text) {
+            const payload = {
+                message: text,
+                sessionId,
+                source: 'web-3d.olig.site',
+            };
 
-            const total =
-                q.total ??
-                q.price_total ??
-                q?.pricing?.total ??
-                q?.pricing?.price_total ??
-                q?.result?.total;
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
 
-            const weightG =
-                q.weight_g ??
-                q?.material?.grams ??
-                q?.result?.weight_g;
+            const data = await res.json().catch(() => null);
 
-            const time =
-                q.time_hhmmss ??
-                q?.time?.hhmmss ??
-                q?.result?.time_hhmmss;
+            // jeśli backend zwróci sessionId, aktualizuj (w pamięci)
+            const d = unwrapFirst(data);
+            if (d && typeof d === 'object' && d.sessionId) sessionId = d.sessionId;
 
-            const lines = [
-                `JOB: ${job || (jobExtId || 'JOB-????')}`,
-                `Materiał: ${material}`,
-            ];
-            if (total != null) lines.push(`Cena: ${total}`);
-            if (weightG != null) lines.push(`Waga [g]: ${weightG}`);
-            if (time) lines.push(`Czas: ${time}`);
-
-            return lines.join('\n');
+            return data;
         }
 
-        async function fetchJob(jobExtId) {
-            const url = API_QUOTE_BY_JOB + encodeURIComponent(jobExtId);
-            const resp = await fetch(url, { method: 'GET' });
-            const data = await safeJson(resp);
-
-            if (!resp.ok || !data || data.success === false) {
-                add('bot', `Nie znaleziono danych dla ${jobExtId}.`);
-                return;
-            }
-
-            // server.js: { success:true, jobExtId, quote, ... }
-            const q = data.quote || {};
-            add('bot', formatJobQuote(data.jobExtId || jobExtId, q));
+        async function callQuoteApi(jobExtId) {
+            const res = await fetch('/api/quote/' + encodeURIComponent(jobExtId), { method: 'GET' });
+            const data = await res.json().catch(() => null);
+            return data;
         }
 
-        async function sendText(text) {
-            const msg = (text || '').trim();
-            if (!msg) return;
+        async function callQuoteFromStlApi(file, material) {
+            const form = new FormData();
+            // UWAGA: server.js oczekuje pola "model"
+            form.append('model', file, file.name);
+            form.append('material', material);
 
-            add('user', msg);
+            const res = await fetch('/api/quote-from-stl', {
+                method: 'POST',
+                body: form,
+            });
 
-            // JOB-xxxx -> pobierz dane joba bez dotykania /api/chat
-            if (/^JOB-\d{4}$/i.test(msg)) {
-                lastJobExtId = msg.toUpperCase();
-                setBusy(true);
+            const data = await res.json().catch(() => null);
+            return data;
+        }
+
+        // ====== ACTIONS ======
+        async function sendMessage() {
+            const text = (input.value || '').trim();
+            if (!text) return;
+
+            addBubble('user', text);
+            input.value = '';
+
+            const isJob = /^JOB-\d+$/i.test(text);
+
+            if (isJob) {
+                const job = text.toUpperCase();
                 try {
-                    await fetchJob(lastJobExtId);
+                    const data = await callQuoteApi(job);
+                    const item = unwrapFirst(data);
+
+                    if (item && item.success === true) {
+                        addBubble('bot', renderQuoteCardFromQuoteApi(item), true);
+                    } else {
+                        addBubble('bot', 'JOB nie znaleziony albo błąd wyceny.');
+                    }
                 } catch (e) {
-                    add('bot', 'Błąd pobierania JOB.');
-                } finally {
-                    setBusy(false);
+                    addBubble('bot', 'Błąd zapytania JOB.');
                 }
                 return;
             }
 
-            if (!sessionId) sessionId = makeSessionId();
-
-            setBusy(true);
             try {
-                const resp = await fetch(API_CHAT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        message: msg,
-                        sessionId: sessionId,
-                    }),
-                });
-
-                const data = await safeJson(resp);
-
-                // próbuj wyciągnąć reply z różnych kształtów odpowiedzi
-                let reply =
-                    data?.reply ??
-                    data?.output?.reply ??
-                    data?.result?.reply ??
-                    (typeof data?.raw === 'string' ? data.raw : null);
-
-                // jeśli backend zwraca śmieci / błąd JSON z DB -> nie psujemy UX, robimy echo po stronie klienta
-                if (!reply || looksLikeBackendJsonError(reply)) {
-                    reply = `Echo: ${msg}`;
-                }
-
-                // jeśli backend odda nowe sessionId -> przyjmij, ale nie nadpisuj null
-                if (data?.sessionId) sessionId = data.sessionId;
-
-                add('bot', reply);
+                const data = await callChatApi(text);
+                const reply = extractReply(data) || '[brak odpowiedzi]';
+                addBubble('bot', reply);
             } catch (e) {
-                add('bot', `Błąd połączenia. Echo: ${msg}`);
-            } finally {
-                setBusy(false);
+                addBubble('bot', 'Błąd API /api/chat.');
             }
         }
 
-        async function sendStl(file) {
+        async function pickAndUploadStl() {
+            fileInput.value = '';
+            fileInput.click();
+        }
+
+        async function handleFileSelected() {
+            const file = fileInput.files && fileInput.files[0];
             if (!file) return;
-            if (!sessionId) sessionId = makeSessionId();
 
-            add('user', `Wgrywam STL: ${file.name}`);
-            setBusy(true);
+            const material = (materialSelect && materialSelect.value) ? materialSelect.value : 'PLA';
+
+            addBubble('user', `Wgrywam STL: ${file.name}`);
 
             try {
-                const fd = new FormData();
-                fd.append('stlFile', file, file.name);
-                // jeśli backend kiedyś zacznie używać sessionId do powiązania -> już jest
-                fd.append('sessionId', sessionId);
+                const data = await callQuoteFromStlApi(file, material);
+                const d = unwrapFirst(data);
 
-                const resp = await fetch(API_QUOTE_FROM_STL, { method: 'POST', body: fd });
-                const data = await safeJson(resp);
+                // server.js zwraca { success, geometry, quote }
+                const quote = d && d.quote ? d.quote : null;
 
-                if (!resp.ok || !data || data.success === false) {
-                    add('bot', data?.error || 'Błąd wyceny STL.');
-                    return;
+                if (d && d.success === true && quote) {
+                    addBubble('bot', renderQuoteCardFromUploadApi(quote), true);
+                } else {
+                    addBubble('bot', 'Błąd wyceny STL.');
                 }
-
-                // server.js: { success:true, geometry, quote }
-                // a n8n może zwrócić quote jako obiekt lub zagnieżdżony payload
-                const q = data.quote || {};
-                const jobExtId =
-                    data.jobExtId || data.job_ext_id ||
-                    q.jobExtId || q.job_ext_id || q.new_job_ext_id || q.job ||
-                    q?.result?.jobExtId;
-
-                if (jobExtId) lastJobExtId = String(jobExtId).toUpperCase();
-
-                add('bot', formatJobQuote(jobExtId, q));
             } catch (e) {
-                add('bot', 'Błąd uploadu STL.');
-            } finally {
-                setBusy(false);
+                addBubble('bot', 'Błąd wyceny STL.');
             }
         }
 
-        // UI events
-        sendBtn.addEventListener('click', () => {
-            const text = msgEl.value;
-            msgEl.value = '';
-            sendText(text);
+        // ====== EVENTS ======
+        sendBtn.addEventListener('click', sendMessage);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendMessage();
         });
 
-        msgEl.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                sendBtn.click();
-            }
+        stlBtn.addEventListener('click', pickAndUploadStl);
+        fileInput.addEventListener('change', handleFileSelected);
+
+        newChatLink.addEventListener('click', () => {
+            setNewChatState();
         });
 
-        stlBtn.addEventListener('click', () => stlInput.click());
-        stlInput.addEventListener('change', () => {
-            const file = stlInput.files && stlInput.files[0];
-            stlInput.value = '';
-            sendStl(file);
-        });
-
-        newChatBtn.addEventListener('click', () => {
-            messages = [];
-            sessionId = null;
-            lastJobExtId = null;
-            renderAll();
-            msgEl.focus();
-        });
-
-        // start
-        renderAll();
-        msgEl.focus();
+        // ====== INIT ======
+        setNewChatState();
     </script>
 </body>
 

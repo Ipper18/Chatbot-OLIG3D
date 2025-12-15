@@ -160,76 +160,117 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
     <script>
-        const SESSION_KEY = 'olig3d_chat_session';
+        const SESSION_KEY = 'olig3d_chat_sessionId';
+        const SOURCE = 'web-3d.olig.site';
 
-        let sessionId = localStorage.getItem(SESSION_KEY);
-        if (!sessionId) {
-            sessionId = (window.crypto && crypto.randomUUID)
-                ? crypto.randomUUID()
-                : (Date.now() + '-' + Math.random().toString(16).slice(2));
-            localStorage.setItem(SESSION_KEY, sessionId);
+        const chatBox = document.getElementById('chatBox');
+        const form = document.getElementById('chatForm');
+        const input = document.getElementById('messageInput');
+        const resetLink = document.getElementById('resetLink');
+
+        // ===== Helpers =====
+        function uuidv4() {
+            if (crypto?.randomUUID) return crypto.randomUUID();
+            // fallback
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                const r = (Math.random() * 16) | 0;
+                const v = c === 'x' ? r : (r & 0x3) | 0x8;
+                return v.toString(16);
+            });
         }
 
-        const form = document.getElementById('chat-form');
-        const input = document.getElementById('chat-input');
-        const list = document.getElementById('messages');
-        const chatWindow = document.getElementById('chat-window');
-        const resetLink = document.getElementById('reset-chat');
-
-        function scrollDown() {
-            chatWindow.scrollTop = chatWindow.scrollHeight;
+        function ensureSessionId() {
+            let sid = localStorage.getItem(SESSION_KEY);
+            if (!sid) {
+                sid = uuidv4();
+                localStorage.setItem(SESSION_KEY, sid);
+            }
+            return sid;
         }
 
-        function appendMessage(who, text, cls, id = null) {
-            const li = document.createElement('li');
-            li.className = `msg ${cls}`;
-            if (id) li.dataset.id = id;
-            li.innerHTML = `<strong>${who}:</strong><br>${String(text).replace(/\n/g, '<br>')}`;
-            list.appendChild(li);
-            scrollDown();
-            return li;
+        function normalizeApiData(data) {
+            // axios czasem da string mimo Content-Type, albo n8n może zwrócić array
+            if (typeof data === 'string') {
+                try { data = JSON.parse(data); } catch (_) { }
+            }
+            if (Array.isArray(data)) data = data[0];
+            return data;
         }
 
-        function updateMessageById(id, who, text, cls) {
-            const el = list.querySelector(`li[data-id="${id}"]`);
-            if (!el) return appendMessage(who, text, cls, id);
-            el.className = `msg ${cls}`;
-            el.innerHTML = `<strong>${who}:</strong><br>${String(text).replace(/\n/g, '<br>')}`;
-            scrollDown();
-            return el;
+        function appendMessage(author, text, role = 'bot', id = null) {
+            const wrap = document.createElement('div');
+            wrap.className = `msg ${role}`;
+            if (id) wrap.dataset.id = id;
+
+            wrap.innerHTML = `
+      <div class="bubble">
+        <div class="author">${author}:</div>
+        <div class="text">${String(text).replace(/\n/g, '<br>')}</div>
+      </div>
+    `;
+            chatBox.appendChild(wrap);
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
 
+        function updateMessageById(id, author, text, role = 'bot') {
+            const el = chatBox.querySelector(`[data-id="${id}"]`);
+            if (!el) return;
+            el.className = `msg ${role}`;
+            el.querySelector('.author').textContent = `${author}:`;
+            el.querySelector('.text').innerHTML = String(text).replace(/\n/g, '<br>');
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // ===== API calls =====
         async function postChat(message) {
-            const controller = new AbortController();
-            const t = setTimeout(() => controller.abort(), 25000); // 25s
+            const sessionId = ensureSessionId();
 
-            try {
-                const r = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message, sessionId }),
-                    signal: controller.signal,
-                });
+            const res = await axios.post('/api/chat', {
+                sessionId,
+                message,
+                source: SOURCE,
+            }, { timeout: 60000 });
 
-                // jeśli serwer zwróci coś nie-JSON, json() rzuci wyjątek
-                const data = await r.json();
+            const data = normalizeApiData(res.data);
 
-                if (!data || data.success !== true || !data.reply) {
-                    throw new Error('bad_response');
-                }
+            if (!data || data.success !== true) throw new Error('Chat API: success!=true');
+            if (typeof data.reply !== 'string' || data.reply.length === 0) throw new Error('Chat API: missing reply');
 
-                if (data.sessionId && data.sessionId !== sessionId) {
-                    sessionId = data.sessionId;
-                    localStorage.setItem(SESSION_KEY, sessionId);
-                }
+            if (typeof data.sessionId === 'string' && data.sessionId.length > 0) {
+                localStorage.setItem(SESSION_KEY, data.sessionId);
+            }
 
-                return data.reply;
-            } finally {
-                clearTimeout(t);
+            return data.reply;
+        }
+
+        async function loadHistory() {
+            const sessionId = localStorage.getItem(SESSION_KEY);
+            if (!sessionId) return;
+
+            const res = await axios.get('/api/chat/history', {
+                params: { sessionId, source: SOURCE },
+                timeout: 20000
+            });
+
+            const data = normalizeApiData(res.data);
+            if (!data || data.success !== true || !Array.isArray(data.messages)) return;
+
+            // wyczyść okno
+            chatBox.innerHTML = '';
+
+            for (const m of data.messages) {
+                if (m.direction === 'in') appendMessage('Ty', m.text, 'user');
+                else appendMessage('OLIG3D', m.text, 'bot');
             }
         }
 
+        // ===== UI logic =====
         let busy = false;
+
+        window.addEventListener('load', async () => {
+            ensureSessionId();
+            await loadHistory();
+        });
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -244,7 +285,7 @@
             appendMessage('Ty', text, 'user');
 
             const pendingId = 'pending-' + Date.now();
-            appendMessage('OLIG3D', 'myślę…', 'bot', pendingId);
+            appendMessage('OLIG3D', 'myślę...', 'bot', pendingId);
 
             try {
                 const reply = await postChat(text);
@@ -265,6 +306,7 @@
             });
         }
     </script>
+
 
 </body>
 

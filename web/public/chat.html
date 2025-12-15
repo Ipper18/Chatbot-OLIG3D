@@ -3,38 +3,45 @@
 
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Chatbot OLIG3D</title>
-    <link rel="stylesheet" href="/styles.css" />
     <style>
-        /* awaryjnie gdyby styles.css nie istniał */
+        :root {
+            color-scheme: dark;
+        }
+
         body {
             margin: 0;
             font-family: system-ui, Arial;
-            background: #1d1f23;
-            color: #fff;
+            background: #0b0f14;
+            color: #e8eef6;
         }
 
         .wrap {
-            max-width: 900px;
+            max-width: 980px;
             margin: 40px auto;
             padding: 0 16px;
         }
 
-        .card {
-            background: #0f1114;
-            border-radius: 18px;
-            padding: 18px;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, .35);
+        h1 {
+            text-align: center;
+            margin: 0 0 18px;
+            font-size: 34px;
         }
 
-        #messages {
-            min-height: 520px;
-            max-height: 520px;
+        .card {
+            background: #0f1722;
+            border-radius: 22px;
+            padding: 18px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, .45);
+        }
+
+        .chatbox {
+            height: 560px;
             overflow: auto;
-            padding: 16px;
-            background: #0b0d10;
-            border-radius: 16px;
+            padding: 18px;
+            border-radius: 18px;
+            background: #0b111a;
         }
 
         .row {
@@ -47,193 +54,238 @@
         }
 
         .bubble {
-            max-width: 70%;
-            padding: 10px 12px;
-            border-radius: 14px;
-            background: #2a2f37;
+            max-width: 72%;
+            padding: 12px 14px;
+            border-radius: 16px;
+            line-height: 1.35;
             white-space: pre-wrap;
         }
 
-        .row.user .bubble {
-            background: #1e6fff;
+        .user .bubble {
+            background: #1e6bff;
+            color: #fff;
+            border-bottom-right-radius: 6px;
+        }
+
+        .bot .bubble {
+            background: #1a2330;
+            color: #e8eef6;
+            border-bottom-left-radius: 6px;
         }
 
         .meta {
             font-size: 12px;
-            opacity: .8;
-            margin-bottom: 4px;
+            opacity: .75;
+            margin-bottom: 6px;
         }
 
-        .bar {
+        .inputbar {
             display: flex;
             gap: 10px;
-            margin-top: 14px;
+            margin-top: 12px;
+            align-items: center;
         }
 
-        #chat-input {
+        input[type="text"] {
             flex: 1;
-            padding: 12px;
-            border-radius: 10px;
-            border: 1px solid #3b3f46;
-            background: #12151a;
-            color: #fff;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, .12);
+            background: #0b111a;
+            color: #e8eef6;
+            outline: none;
         }
 
         button {
-            padding: 12px 16px;
-            border-radius: 10px;
-            border: none;
-            background: #1e6fff;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 0;
+            cursor: pointer;
+            background: #1e6bff;
             color: #fff;
-            cursor: pointer;
+            font-weight: 600;
         }
 
-        button:disabled {
-            opacity: .6;
-            cursor: not-allowed;
-        }
-
-        .footer {
-            margin-top: 10px;
+        .link {
+            display: block;
             text-align: center;
+            margin-top: 10px;
+            color: #9bbcff;
+            cursor: pointer;
+            user-select: none;
         }
 
-        .footer a {
-            color: #9bb7ff;
+        .link:hover {
             text-decoration: underline;
-            cursor: pointer;
         }
     </style>
 </head>
 
 <body>
     <div class="wrap">
-        <h1 style="text-align:center;">Chatbot OLIG3D</h1>
-
+        <h1>Chatbot OLIG3D</h1>
         <div class="card">
-            <div id="messages"></div>
+            <div id="chat" class="chatbox"></div>
 
-            <div class="bar">
-                <input id="chat-input" placeholder="Napisz wiadomość..." autocomplete="off" />
-                <button id="sendBtn" type="button">Wyślij</button>
-                <button id="stlBtn" type="button" title="Wycena STL">STL</button>
-                <input id="stlInput" type="file" accept=".stl" style="display:none" />
+            <div class="inputbar">
+                <input id="msg" type="text" placeholder="Napisz wiadomość..." autocomplete="off" />
+                <button id="send">Wyślij</button>
+                <button id="stlBtn" type="button">STL</button>
+                <input id="stl" type="file" accept=".stl" style="display:none" />
             </div>
 
-            <div class="footer">
-                <a id="resetLink">Zacznij nową rozmowę</a>
-            </div>
+            <div id="newChat" class="link">Zacznij nową rozmowę</div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
-        const SESSION_KEY = 'olig3d_chat_session';
+        // Tylko bieżąca sesja (RAM). Po reload/nowa rozmowa wszystko znika.
+        let sessionId = null;
+        const messages = []; // { role: 'user'|'assistant', text: string }
 
-        let sessionId = localStorage.getItem(SESSION_KEY);
-        if (!sessionId) {
-            sessionId = (window.crypto && crypto.randomUUID)
-                ? crypto.randomUUID()
-                : (Date.now() + '-' + Math.random().toString(16).slice(2));
-            localStorage.setItem(SESSION_KEY, sessionId);
+        const chatEl = document.getElementById('chat');
+        const msgEl = document.getElementById('msg');
+        const sendEl = document.getElementById('send');
+        const stlBtn = document.getElementById('stlBtn');
+        const stlInp = document.getElementById('stl');
+        const newChat = document.getElementById('newChat');
+
+        function ensureSessionId() {
+            if (!sessionId) sessionId = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+            return sessionId;
         }
 
-        const form = document.getElementById('chat-form');
-        const input = document.getElementById('chat-input');
-        const list = document.getElementById('messages');
-        const chatWindow = document.getElementById('chat-window');
-        const resetLink = document.getElementById('reset-chat');
+        function render() {
+            chatEl.innerHTML = '';
+            for (const m of messages) {
+                const row = document.createElement('div');
+                row.className = 'row ' + (m.role === 'user' ? 'user' : 'bot');
 
-        function scrollDown() {
-            chatWindow.scrollTop = chatWindow.scrollHeight;
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+
+                const meta = document.createElement('div');
+                meta.className = 'meta';
+                meta.textContent = (m.role === 'user') ? 'Ty:' : 'OLIG3D:';
+
+                bubble.appendChild(meta);
+                bubble.appendChild(document.createTextNode(m.text));
+
+                row.appendChild(bubble);
+                chatEl.appendChild(row);
+            }
+            chatEl.scrollTop = chatEl.scrollHeight;
         }
 
-        function appendMessage(who, text, cls, id = null) {
-            const li = document.createElement('li');
-            li.className = `msg ${cls}`;
-            if (id) li.dataset.id = id;
-            li.innerHTML = `<strong>${who}:</strong><br>${String(text).replace(/\n/g, '<br>')}`;
-            list.appendChild(li);
-            scrollDown();
-            return li;
+        function add(role, text) {
+            messages.push({ role, text: String(text ?? '') });
+            render();
         }
 
-        function updateMessageById(id, who, text, cls) {
-            const el = list.querySelector(`li[data-id="${id}"]`);
-            if (!el) return appendMessage(who, text, cls, id);
-            el.className = `msg ${cls}`;
-            el.innerHTML = `<strong>${who}:</strong><br>${String(text).replace(/\n/g, '<br>')}`;
-            scrollDown();
-            return el;
+        function formatQuote(q) {
+            // Bezpiecznie, bo czasem API może zwrócić inny kształt
+            const job = q?.jobExtId ?? q?.jobId ?? 'JOB-????';
+            const mat = q?.material?.material ?? q?.material ?? 'PLA';
+            const ppk = q?.material?.pricePerKg ?? q?.pricePerKg ?? '';
+            const total = q?.total ?? '';
+            const cur = q?.currency ?? 'PLN';
+
+            const dims = q?.dimensions ?? '';
+            const grams = q?.material?.grams ?? q?.grams ?? '';
+            const time = q?.time?.hhmmss ?? q?.time?.minutes ? `${q.time.minutes} min` : '';
+
+            const materialCost = q?.breakdown?.materialCost ?? '';
+            const timeCost = q?.breakdown?.timeCost ?? '';
+            const energyCost = q?.breakdown?.energyCost ?? '';
+            const margin = q?.breakdown?.margin ?? '';
+
+            return [
+                `JOB: ${job}`,
+                `Materiał: ${mat}${ppk ? ` | ${ppk} zł/kg` : ''}`,
+                dims ? `Wymiary: ${dims}` : null,
+                time ? `Czas druku: ${time}` : null,
+                grams ? `Masa: ${grams} g` : null,
+                materialCost !== '' ? `Koszt materiału: ${materialCost} zł` : null,
+                timeCost !== '' ? `Koszt czasu: ${timeCost} zł` : null,
+                energyCost !== '' ? `Koszt energii: ${energyCost} zł` : null,
+                margin !== '' ? `Marża: ${margin} zł` : null,
+                total !== '' ? `Razem: ${total} ${cur}` : null,
+            ].filter(Boolean).join('\n');
         }
 
-        async function postChat(message) {
-            const controller = new AbortController();
-            const t = setTimeout(() => controller.abort(), 25000); // 25s
+        async function sendMessage() {
+            const text = msgEl.value.trim();
+            if (!text) return;
+
+            ensureSessionId();
+            add('user', text);
+            msgEl.value = '';
 
             try {
                 const r = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message, sessionId }),
-                    signal: controller.signal,
+                    body: JSON.stringify({ message: text, sessionId })
                 });
 
-                // jeśli serwer zwróci coś nie-JSON, json() rzuci wyjątek
-                const data = await r.json();
+                const data = await r.json().catch(() => ({}));
+                const reply =
+                    data?.reply ??
+                    data?.output?.reply ??
+                    data?.data?.reply ??
+                    (typeof data === 'string' ? data : null) ??
+                    '[brak odpowiedzi]';
 
-                if (!data || data.success !== true || !data.reply) {
-                    throw new Error('bad_response');
-                }
-
-                if (data.sessionId && data.sessionId !== sessionId) {
-                    sessionId = data.sessionId;
-                    localStorage.setItem(SESSION_KEY, sessionId);
-                }
-
-                return data.reply;
-            } finally {
-                clearTimeout(t);
+                add('assistant', reply);
+            } catch (e) {
+                add('assistant', '[błąd połączenia z API]');
             }
         }
 
-        let busy = false;
+        async function sendStl(file) {
+            if (!file) return;
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (busy) return;
+            ensureSessionId();
+            add('user', `Wgrywam STL: ${file.name}`);
 
-            const text = input.value.trim();
-            if (!text) return;
-
-            busy = true;
-            input.value = '';
-
-            appendMessage('Ty', text, 'user');
-
-            const pendingId = 'pending-' + Date.now();
-            appendMessage('OLIG3D', 'myślę…', 'bot', pendingId);
+            const fd = new FormData();
+            fd.append('model', file, file.name);
+            fd.append('sessionId', sessionId);
 
             try {
-                const reply = await postChat(text);
-                updateMessageById(pendingId, 'OLIG3D', reply, 'bot');
-            } catch (err) {
-                updateMessageById(pendingId, 'OLIG3D', '[brak odpowiedzi]', 'bot');
-            } finally {
-                busy = false;
-                input.focus();
+                const r = await fetch('/api/quote-from-stl', { method: 'POST', body: fd });
+                const data = await r.json().catch(() => ({}));
+
+                const q = data?.quote ?? data?.data?.quote ?? data?.output?.quote ?? null;
+                if (!q) {
+                    add('assistant', '[brak danych wyceny]');
+                    return;
+                }
+                add('assistant', formatQuote(q));
+            } catch (e) {
+                add('assistant', '[błąd wyceny STL]');
             }
+        }
+
+        sendEl.addEventListener('click', sendMessage);
+        msgEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+        stlBtn.addEventListener('click', () => stlInp.click());
+        stlInp.addEventListener('change', () => {
+            const f = stlInp.files && stlInp.files[0];
+            stlInp.value = '';
+            if (f) sendStl(f);
         });
 
-        if (resetLink) {
-            resetLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                localStorage.removeItem(SESSION_KEY);
-                location.reload();
-            });
-        }
-    </script>
+        newChat.addEventListener('click', () => {
+            sessionId = null;
+            messages.length = 0;
+            render();
+            msgEl.focus();
+        });
 
+        render();
+    </script>
 </body>
 
 </html>

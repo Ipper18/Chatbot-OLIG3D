@@ -3,7 +3,7 @@ const FormData = require('form-data');
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
-
+const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -105,7 +105,8 @@ async function analyzeGeometryWithFastAPI(file) {
 app.use('/api/admin', basicAuth);
 
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 
 // zdrowie dla Coolify
 app.get('/hc', (_req, res) => res.status(200).send('OK'));
@@ -147,40 +148,29 @@ app.get('/api/admin/pricing', async (req, res) => {
 
 // proxy do n8n
 app.post('/api/chat', async (req, res) => {
-    const url = process.env.N8N_CHAT_WEBHOOK_URL;
-
-    if (!url) {
-        return res.status(500).json({ success: false, error: 'chat_url_missing' });
-    }
-
-    const message = (req.body?.message || '').toString();
-    const sessionId = req.body?.sessionId || null;
-
     try {
-        const r = await axios.post(
-            url,
-            { message, sessionId },
-            { timeout: 30000 } // 30s
-        );
+        const url = process.env.N8N_CHAT_WEBHOOK_URL;
+        if (!url) return res.status(500).json({ success: false, reply: '[brak N8N_CHAT_WEBHOOK_URL]' });
 
-        const data = r.data;
-        const payload = Array.isArray(data) ? data[0] : data;
+        const message = String(req.body?.message ?? '').trim();
+        if (!message) return res.status(400).json({ success: false, reply: '[brak message]' });
 
-        const reply = payload?.reply ?? null;
-        const sid = payload?.sessionId ?? sessionId;
+        const sessionId = String(req.body?.sessionId ?? '').trim() || genSessionId();
+        const source = String(req.body?.source ?? 'web-3d.olig.site');
 
-        if (!reply) {
-            return res.status(502).json({
-                success: false,
-                error: 'chat_bad_response',
-                raw: data,
-            });
-        }
+        const r = await axios.post(url, { message, sessionId, source }, { timeout: 30000 });
+        const out = unwrapN8n(r.data);
 
-        return res.json({ success: true, sessionId: sid, reply });
+        const reply =
+            out.reply ??
+            out.output?.reply ??
+            out.data?.reply ??
+            (typeof out === 'string' ? out : null) ??
+            '[brak odpowiedzi]';
+
+        res.json({ success: true, sessionId, reply });
     } catch (e) {
-        console.error('[CHAT]', e?.message);
-        return res.status(500).json({ success: false, error: 'chat_failed' });
+        res.status(502).json({ success: false, reply: '[błąd upstream n8n]' });
     }
 });
 
@@ -402,3 +392,15 @@ app.post('/api/quote-from-stl', upload.single('model'), async (req, res) => {
     }
 });
 
+function unwrapN8n(data) {
+    // n8n czasem zwraca obiekt, czasem tablicę itemów, czasem string
+    if (typeof data === 'string') {
+        try { return JSON.parse(data); } catch { return { reply: data }; }
+    }
+    if (Array.isArray(data)) return data[0] ?? {};
+    return data ?? {};
+}
+
+function genSessionId() {
+    return crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+}

@@ -160,72 +160,109 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
     <script>
-        // Logika JavaScript (z Twojego pliku chat.js)
+        const SESSION_KEY = 'olig3d_chat_session';
 
-        // 1. Pobieranie SessionID z LocalStorage (pamięć przeglądarki)
-        let sessionId = localStorage.getItem('olig3d_chat_session') || null;
+        let sessionId = localStorage.getItem(SESSION_KEY);
+        if (!sessionId) {
+            sessionId = (window.crypto && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : (Date.now() + '-' + Math.random().toString(16).slice(2));
+            localStorage.setItem(SESSION_KEY, sessionId);
+        }
 
         const form = document.getElementById('chat-form');
         const input = document.getElementById('chat-input');
         const list = document.getElementById('messages');
         const chatWindow = document.getElementById('chat-window');
+        const resetLink = document.getElementById('reset-chat');
 
-        // Obsługa wysłania formularza
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const text = input.value.trim();
-            if (!text) return;
-
-            // 1. Wyświetl wiadomość użytkownika od razu
-            appendMessage('Ty', text, 'user');
-            input.value = '';
-
-            try {
-                // 2. Wyślij zapytanie do Twojego backendu (który gada z n8n)
-                const res = await axios.post('/api/chat', {
-                    message: text,
-                    sessionId: sessionId
-                });
-
-                const data = res.data;
-
-                // 3. Aktualizacja SessionID (jeśli serwer nadał nowe)
-                if (data.sessionId && data.sessionId !== sessionId) {
-                    sessionId = data.sessionId;
-                    localStorage.setItem('olig3d_chat_session', sessionId);
-                }
-
-                // 4. Wyświetl odpowiedź Bota
-                const replyText = data.reply || '[brak odpowiedzi]';
-                appendMessage('OLIG3D', replyText, 'bot');
-
-            } catch (err) {
-                console.error(err);
-                appendMessage('System', 'Wystąpił błąd podczas rozmowy.', 'error');
-            }
-        });
-
-        // Funkcja pomocnicza do dodawania dymków
-        function appendMessage(who, text, cssClass) {
-            const li = document.createElement('li');
-            li.className = cssClass;
-
-            // Bezpieczne wstawianie tekstu (zamiana enterów na <br>)
-            // HTML wewnątrz strong dla nazwy autora
-            li.innerHTML = `<strong>${who}:</strong> <br>${text.replace(/\n/g, '<br>')}`;
-
-            list.appendChild(li);
-
-            // Automatyczne przewijanie na dół
+        function scrollDown() {
             chatWindow.scrollTop = chatWindow.scrollHeight;
         }
 
-        // Opcjonalne: Funkcja czyszcząca sesję
-        function resetSession() {
-            localStorage.removeItem('olig3d_chat_session');
-            sessionId = null;
-            list.innerHTML = '';
-            appendMessage('System', 'Rozpoczęto nową sesję.', 'error');
+        function appendMessage(who, text, cls, id = null) {
+            const li = document.createElement('li');
+            li.className = `msg ${cls}`;
+            if (id) li.dataset.id = id;
+            li.innerHTML = `<strong>${who}:</strong><br>${String(text).replace(/\n/g, '<br>')}`;
+            list.appendChild(li);
+            scrollDown();
+            return li;
+        }
+
+        function updateMessageById(id, who, text, cls) {
+            const el = list.querySelector(`li[data-id="${id}"]`);
+            if (!el) return appendMessage(who, text, cls, id);
+            el.className = `msg ${cls}`;
+            el.innerHTML = `<strong>${who}:</strong><br>${String(text).replace(/\n/g, '<br>')}`;
+            scrollDown();
+            return el;
+        }
+
+        async function postChat(message) {
+            const controller = new AbortController();
+            const t = setTimeout(() => controller.abort(), 25000); // 25s
+
+            try {
+                const r = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message, sessionId }),
+                    signal: controller.signal,
+                });
+
+                // jeśli serwer zwróci coś nie-JSON, json() rzuci wyjątek
+                const data = await r.json();
+
+                if (!data || data.success !== true || !data.reply) {
+                    throw new Error('bad_response');
+                }
+
+                if (data.sessionId && data.sessionId !== sessionId) {
+                    sessionId = data.sessionId;
+                    localStorage.setItem(SESSION_KEY, sessionId);
+                }
+
+                return data.reply;
+            } finally {
+                clearTimeout(t);
+            }
+        }
+
+        let busy = false;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (busy) return;
+
+            const text = input.value.trim();
+            if (!text) return;
+
+            busy = true;
+            input.value = '';
+
+            appendMessage('Ty', text, 'user');
+
+            const pendingId = 'pending-' + Date.now();
+            appendMessage('OLIG3D', 'myślę…', 'bot', pendingId);
+
+            try {
+                const reply = await postChat(text);
+                updateMessageById(pendingId, 'OLIG3D', reply, 'bot');
+            } catch (err) {
+                updateMessageById(pendingId, 'OLIG3D', '[brak odpowiedzi]', 'bot');
+            } finally {
+                busy = false;
+                input.focus();
+            }
+        });
+
+        if (resetLink) {
+            resetLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                localStorage.removeItem(SESSION_KEY);
+                location.reload();
+            });
         }
     </script>
 

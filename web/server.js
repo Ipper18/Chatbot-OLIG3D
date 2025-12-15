@@ -147,16 +147,40 @@ app.get('/api/admin/pricing', async (req, res) => {
 
 // proxy do n8n
 app.post('/api/chat', async (req, res) => {
-    try {
-        const r = await axios.post(process.env.N8N_CHAT_WEBHOOK_URL, {
-            message: req.body.message,
-            sessionId: req.body.sessionId || null,
-        }, { timeout: 10000 });
+    const url = process.env.N8N_CHAT_WEBHOOK_URL;
 
-        res.json(r.data); // { reply: "...", ... }
+    if (!url) {
+        return res.status(500).json({ success: false, error: 'chat_url_missing' });
+    }
+
+    const message = (req.body?.message || '').toString();
+    const sessionId = req.body?.sessionId || null;
+
+    try {
+        const r = await axios.post(
+            url,
+            { message, sessionId },
+            { timeout: 30000 } // 30s
+        );
+
+        const data = r.data;
+        const payload = Array.isArray(data) ? data[0] : data;
+
+        const reply = payload?.reply ?? null;
+        const sid = payload?.sessionId ?? sessionId;
+
+        if (!reply) {
+            return res.status(502).json({
+                success: false,
+                error: 'chat_bad_response',
+                raw: data,
+            });
+        }
+
+        return res.json({ success: true, sessionId: sid, reply });
     } catch (e) {
-        console.error(e.message);
-        res.status(500).json({ success: false, error: 'chat_failed' });
+        console.error('[CHAT]', e?.message);
+        return res.status(500).json({ success: false, error: 'chat_failed' });
     }
 });
 

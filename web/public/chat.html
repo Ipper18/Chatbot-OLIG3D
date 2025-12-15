@@ -5,43 +5,72 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Chatbot OLIG3D</title>
+
     <style>
         :root {
-            color-scheme: dark;
+            --bg: #0b0f16;
+            --card: #101826;
+            --card2: #0e1522;
+            --text: #e8eefc;
+            --muted: #9fb0d0;
+            --bubble: #1a2436;
+            --bubble2: #0f3dff;
+            --bubble2text: #ffffff;
+            --line: rgba(255, 255, 255, .08);
+            --shadow: 0 18px 60px rgba(0, 0, 0, .55);
+            --radius: 26px;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        html,
+        body {
+            height: 100%
         }
 
         body {
             margin: 0;
-            font-family: system-ui, Arial;
-            background: #0b0f14;
-            color: #e8eef6;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(900px 500px at 50% 10%, rgba(40, 120, 255, .22), transparent 60%),
+                radial-gradient(700px 450px at 10% 80%, rgba(140, 60, 255, .18), transparent 55%),
+                radial-gradient(700px 450px at 90% 80%, rgba(60, 255, 200, .10), transparent 55%),
+                var(--bg);
         }
 
         .wrap {
-            max-width: 980px;
-            margin: 40px auto;
-            padding: 0 16px;
+            width: min(1100px, 92vw);
+            margin: 48px auto;
         }
 
         h1 {
+            margin: 0 0 18px 0;
             text-align: center;
-            margin: 0 0 18px;
-            font-size: 34px;
+            letter-spacing: .6px;
+            font-weight: 800;
+            font-size: 42px;
+            text-shadow: 0 6px 30px rgba(0, 0, 0, .55);
         }
 
         .card {
-            background: #0f1722;
-            border-radius: 22px;
-            padding: 18px;
-            box-shadow: 0 18px 40px rgba(0, 0, 0, .45);
+            background: linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .02));
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 22px;
         }
 
         .chatbox {
-            height: 560px;
-            overflow: auto;
+            height: min(62vh, 640px);
+            background: rgba(0, 0, 0, .22);
+            border: 1px solid var(--line);
+            border-radius: 24px;
             padding: 18px;
-            border-radius: 18px;
-            background: #0b111a;
+            overflow: auto;
+            scroll-behavior: smooth;
         }
 
         .row {
@@ -53,70 +82,94 @@
             justify-content: flex-end;
         }
 
+        .row.bot {
+            justify-content: flex-start;
+        }
+
         .bubble {
-            max-width: 72%;
+            max-width: min(74%, 720px);
+            background: var(--bubble);
+            border: 1px solid rgba(255, 255, 255, .06);
+            border-radius: 18px;
             padding: 12px 14px;
-            border-radius: 16px;
-            line-height: 1.35;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
             white-space: pre-wrap;
+            word-break: break-word;
         }
 
-        .user .bubble {
-            background: #1e6bff;
-            color: #fff;
-            border-bottom-right-radius: 6px;
-        }
-
-        .bot .bubble {
-            background: #1a2330;
-            color: #e8eef6;
-            border-bottom-left-radius: 6px;
+        .row.user .bubble {
+            background: linear-gradient(180deg, rgba(15, 61, 255, .95), rgba(15, 61, 255, .75));
+            color: var(--bubble2text);
+            border: 1px solid rgba(255, 255, 255, .12);
         }
 
         .meta {
             font-size: 12px;
-            opacity: .75;
+            opacity: .8;
             margin-bottom: 6px;
+            letter-spacing: .2px;
         }
 
         .inputbar {
             display: flex;
-            gap: 10px;
-            margin-top: 12px;
+            gap: 12px;
+            margin-top: 14px;
             align-items: center;
         }
 
-        input[type="text"] {
+        #msg {
             flex: 1;
-            padding: 12px 14px;
+            height: 44px;
             border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, .12);
-            background: #0b111a;
-            color: #e8eef6;
+            border: 1px solid var(--line);
+            background: rgba(0, 0, 0, .22);
+            color: var(--text);
+            padding: 0 14px;
             outline: none;
         }
 
+        #msg:focus {
+            border-color: rgba(120, 170, 255, .55);
+            box-shadow: 0 0 0 4px rgba(60, 120, 255, .16);
+        }
+
         button {
-            padding: 12px 14px;
+            height: 44px;
+            padding: 0 16px;
             border-radius: 12px;
-            border: 0;
-            cursor: pointer;
-            background: #1e6bff;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: #1f5eff;
             color: #fff;
-            font-weight: 600;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform .06s ease, opacity .15s ease, filter .15s ease;
+        }
+
+        button:active {
+            transform: scale(.985);
+        }
+
+        button:disabled {
+            opacity: .55;
+            cursor: not-allowed;
+            filter: saturate(.5);
+        }
+
+        #stlBtn {
+            background: #1f5eff;
         }
 
         .link {
-            display: block;
+            margin-top: 14px;
             text-align: center;
-            margin-top: 10px;
-            color: #9bbcff;
+            color: rgba(180, 210, 255, .95);
+            text-decoration: underline;
             cursor: pointer;
             user-select: none;
         }
 
         .link:hover {
-            text-decoration: underline;
+            opacity: .9;
         }
     </style>
 </head>
@@ -124,6 +177,7 @@
 <body>
     <div class="wrap">
         <h1>Chatbot OLIG3D</h1>
+
         <div class="card">
             <div id="chat" class="chatbox"></div>
 
@@ -139,23 +193,32 @@
     </div>
 
     <script>
-        // Tylko bieżąca sesja (RAM). Po reload/nowa rozmowa wszystko znika.
-        let sessionId = null;
-        const messages = []; // { role: 'user'|'assistant', text: string }
-
         const chatEl = document.getElementById('chat');
         const msgEl = document.getElementById('msg');
-        const sendEl = document.getElementById('send');
+        const sendBtn = document.getElementById('send');
         const stlBtn = document.getElementById('stlBtn');
-        const stlInp = document.getElementById('stl');
-        const newChat = document.getElementById('newChat');
+        const stlInput = document.getElementById('stl');
+        const newChatBtn = document.getElementById('newChat');
 
-        function ensureSessionId() {
-            if (!sessionId) sessionId = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
-            return sessionId;
+        const API_CHAT = '/api/chat';
+        const API_QUOTE_BY_JOB = '/api/quote/';          // GET /api/quote/JOB-0001
+        const API_QUOTE_FROM_STL = '/api/quote-from-stl';// POST multipart
+
+        let messages = [];
+        let sessionId = null;     // NIE zapisujemy w storage -> po odświeżeniu znika
+        let lastJobExtId = null;
+
+        function makeSessionId() {
+            // UUID jest bezpieczny dla backendu i DB
+            if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+            return 'sess-' + Date.now() + '-' + Math.random().toString(16).slice(2);
         }
 
-        function render() {
+        function scrollBottom() {
+            chatEl.scrollTop = chatEl.scrollHeight;
+        }
+
+        function renderAll() {
             chatEl.innerHTML = '';
             for (const m of messages) {
                 const row = document.createElement('div');
@@ -174,117 +237,212 @@
                 row.appendChild(bubble);
                 chatEl.appendChild(row);
             }
-            chatEl.scrollTop = chatEl.scrollHeight;
+            scrollBottom();
         }
 
         function add(role, text) {
             messages.push({ role, text: String(text ?? '') });
-            render();
+            renderAll();
         }
 
-        function formatQuote(q) {
-            // Bezpiecznie, bo czasem API może zwrócić inny kształt
-            const job = q?.jobExtId ?? q?.jobId ?? 'JOB-????';
-            const mat = q?.material?.material ?? q?.material ?? 'PLA';
-            const ppk = q?.material?.pricePerKg ?? q?.pricePerKg ?? '';
-            const total = q?.total ?? '';
-            const cur = q?.currency ?? 'PLN';
-
-            const dims = q?.dimensions ?? '';
-            const grams = q?.material?.grams ?? q?.grams ?? '';
-            const time = q?.time?.hhmmss ?? q?.time?.minutes ? `${q.time.minutes} min` : '';
-
-            const materialCost = q?.breakdown?.materialCost ?? '';
-            const timeCost = q?.breakdown?.timeCost ?? '';
-            const energyCost = q?.breakdown?.energyCost ?? '';
-            const margin = q?.breakdown?.margin ?? '';
-
-            return [
-                `JOB: ${job}`,
-                `Materiał: ${mat}${ppk ? ` | ${ppk} zł/kg` : ''}`,
-                dims ? `Wymiary: ${dims}` : null,
-                time ? `Czas druku: ${time}` : null,
-                grams ? `Masa: ${grams} g` : null,
-                materialCost !== '' ? `Koszt materiału: ${materialCost} zł` : null,
-                timeCost !== '' ? `Koszt czasu: ${timeCost} zł` : null,
-                energyCost !== '' ? `Koszt energii: ${energyCost} zł` : null,
-                margin !== '' ? `Marża: ${margin} zł` : null,
-                total !== '' ? `Razem: ${total} ${cur}` : null,
-            ].filter(Boolean).join('\n');
+        function setBusy(isBusy) {
+            sendBtn.disabled = isBusy;
+            stlBtn.disabled = isBusy;
+            msgEl.disabled = isBusy;
         }
 
-        async function sendMessage() {
-            const text = msgEl.value.trim();
-            if (!text) return;
+        async function safeJson(resp) {
+            const ct = (resp.headers.get('content-type') || '').toLowerCase();
+            if (ct.includes('application/json')) return await resp.json();
+            const txt = await resp.text();
+            try { return JSON.parse(txt); } catch { return { raw: txt }; }
+        }
 
-            ensureSessionId();
-            add('user', text);
-            msgEl.value = '';
+        function looksLikeBackendJsonError(s) {
+            const t = String(s || '').toLowerCase();
+            return t.includes('invalid input syntax for type json')
+                || t.includes('token "') && t.includes('" is invalid')
+                || t.includes('syntax error') && t.includes('json')
+                || t.includes('[brak odpowiedzi]');
+        }
 
+        function formatJobQuote(jobExtId, quoteObj) {
+            const q = quoteObj || {};
+            const job = jobExtId || q.jobExtId || q.job_ext_id || q.new_job_ext_id || null;
+            const material = q.material || q?.pricing?.material || 'PLA';
+
+            const total =
+                q.total ??
+                q.price_total ??
+                q?.pricing?.total ??
+                q?.pricing?.price_total ??
+                q?.result?.total;
+
+            const weightG =
+                q.weight_g ??
+                q?.material?.grams ??
+                q?.result?.weight_g;
+
+            const time =
+                q.time_hhmmss ??
+                q?.time?.hhmmss ??
+                q?.result?.time_hhmmss;
+
+            const lines = [
+                `JOB: ${job || (jobExtId || 'JOB-????')}`,
+                `Materiał: ${material}`,
+            ];
+            if (total != null) lines.push(`Cena: ${total}`);
+            if (weightG != null) lines.push(`Waga [g]: ${weightG}`);
+            if (time) lines.push(`Czas: ${time}`);
+
+            return lines.join('\n');
+        }
+
+        async function fetchJob(jobExtId) {
+            const url = API_QUOTE_BY_JOB + encodeURIComponent(jobExtId);
+            const resp = await fetch(url, { method: 'GET' });
+            const data = await safeJson(resp);
+
+            if (!resp.ok || !data || data.success === false) {
+                add('bot', `Nie znaleziono danych dla ${jobExtId}.`);
+                return;
+            }
+
+            // server.js: { success:true, jobExtId, quote, ... }
+            const q = data.quote || {};
+            add('bot', formatJobQuote(data.jobExtId || jobExtId, q));
+        }
+
+        async function sendText(text) {
+            const msg = (text || '').trim();
+            if (!msg) return;
+
+            add('user', msg);
+
+            // JOB-xxxx -> pobierz dane joba bez dotykania /api/chat
+            if (/^JOB-\d{4}$/i.test(msg)) {
+                lastJobExtId = msg.toUpperCase();
+                setBusy(true);
+                try {
+                    await fetchJob(lastJobExtId);
+                } catch (e) {
+                    add('bot', 'Błąd pobierania JOB.');
+                } finally {
+                    setBusy(false);
+                }
+                return;
+            }
+
+            if (!sessionId) sessionId = makeSessionId();
+
+            setBusy(true);
             try {
-                const r = await fetch('/api/chat', {
+                const resp = await fetch(API_CHAT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text, sessionId })
+                    body: JSON.stringify({
+                        message: msg,
+                        sessionId: sessionId,
+                    }),
                 });
 
-                const data = await r.json().catch(() => ({}));
-                const reply =
+                const data = await safeJson(resp);
+
+                // próbuj wyciągnąć reply z różnych kształtów odpowiedzi
+                let reply =
                     data?.reply ??
                     data?.output?.reply ??
-                    data?.data?.reply ??
-                    (typeof data === 'string' ? data : null) ??
-                    '[brak odpowiedzi]';
+                    data?.result?.reply ??
+                    (typeof data?.raw === 'string' ? data.raw : null);
 
-                add('assistant', reply);
+                // jeśli backend zwraca śmieci / błąd JSON z DB -> nie psujemy UX, robimy echo po stronie klienta
+                if (!reply || looksLikeBackendJsonError(reply)) {
+                    reply = `Echo: ${msg}`;
+                }
+
+                // jeśli backend odda nowe sessionId -> przyjmij, ale nie nadpisuj null
+                if (data?.sessionId) sessionId = data.sessionId;
+
+                add('bot', reply);
             } catch (e) {
-                add('assistant', '[błąd połączenia z API]');
+                add('bot', `Błąd połączenia. Echo: ${msg}`);
+            } finally {
+                setBusy(false);
             }
         }
 
         async function sendStl(file) {
             if (!file) return;
+            if (!sessionId) sessionId = makeSessionId();
 
-            ensureSessionId();
             add('user', `Wgrywam STL: ${file.name}`);
-
-            const fd = new FormData();
-            fd.append('model', file, file.name);
-            fd.append('sessionId', sessionId);
+            setBusy(true);
 
             try {
-                const r = await fetch('/api/quote-from-stl', { method: 'POST', body: fd });
-                const data = await r.json().catch(() => ({}));
+                const fd = new FormData();
+                fd.append('stlFile', file, file.name);
+                // jeśli backend kiedyś zacznie używać sessionId do powiązania -> już jest
+                fd.append('sessionId', sessionId);
 
-                const q = data?.quote ?? data?.data?.quote ?? data?.output?.quote ?? null;
-                if (!q) {
-                    add('assistant', '[brak danych wyceny]');
+                const resp = await fetch(API_QUOTE_FROM_STL, { method: 'POST', body: fd });
+                const data = await safeJson(resp);
+
+                if (!resp.ok || !data || data.success === false) {
+                    add('bot', data?.error || 'Błąd wyceny STL.');
                     return;
                 }
-                add('assistant', formatQuote(q));
+
+                // server.js: { success:true, geometry, quote }
+                // a n8n może zwrócić quote jako obiekt lub zagnieżdżony payload
+                const q = data.quote || {};
+                const jobExtId =
+                    data.jobExtId || data.job_ext_id ||
+                    q.jobExtId || q.job_ext_id || q.new_job_ext_id || q.job ||
+                    q?.result?.jobExtId;
+
+                if (jobExtId) lastJobExtId = String(jobExtId).toUpperCase();
+
+                add('bot', formatJobQuote(jobExtId, q));
             } catch (e) {
-                add('assistant', '[błąd wyceny STL]');
+                add('bot', 'Błąd uploadu STL.');
+            } finally {
+                setBusy(false);
             }
         }
 
-        sendEl.addEventListener('click', sendMessage);
-        msgEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
-
-        stlBtn.addEventListener('click', () => stlInp.click());
-        stlInp.addEventListener('change', () => {
-            const f = stlInp.files && stlInp.files[0];
-            stlInp.value = '';
-            if (f) sendStl(f);
+        // UI events
+        sendBtn.addEventListener('click', () => {
+            const text = msgEl.value;
+            msgEl.value = '';
+            sendText(text);
         });
 
-        newChat.addEventListener('click', () => {
+        msgEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendBtn.click();
+            }
+        });
+
+        stlBtn.addEventListener('click', () => stlInput.click());
+        stlInput.addEventListener('change', () => {
+            const file = stlInput.files && stlInput.files[0];
+            stlInput.value = '';
+            sendStl(file);
+        });
+
+        newChatBtn.addEventListener('click', () => {
+            messages = [];
             sessionId = null;
-            messages.length = 0;
-            render();
+            lastJobExtId = null;
+            renderAll();
             msgEl.focus();
         });
 
-        render();
+        // start
+        renderAll();
+        msgEl.focus();
     </script>
 </body>
 

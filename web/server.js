@@ -403,6 +403,8 @@ app.post('/api/quote-from-stl', upload.single('model'), async (req, res) => {
 
 app.get('/api/chat/history', async (req, res) => {
     try {
+        res.set('Cache-Control', 'no-store');
+
         const sessionId = String(req.query.sessionId || '').trim();
         const source = String(req.query.source || 'web-3d.olig.site').trim();
 

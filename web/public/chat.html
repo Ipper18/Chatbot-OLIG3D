@@ -1,286 +1,227 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pl">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Chatbot OLIG3D</title>
-    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/styles.css" />
     <style>
+        /* awaryjnie gdyby styles.css nie istniał */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f4f6f9;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding-top: 50px;
             margin: 0;
-            height: 100vh;
-            box-sizing: border-box;
+            font-family: system-ui, Arial;
+            background: #1d1f23;
+            color: #fff;
         }
 
-        h1 {
-            color: #2d3748;
-            margin-bottom: 20px;
+        .wrap {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 16px;
         }
 
-        /* Kontener okna czatu */
-        #chat-window {
-            width: 100%;
-            max-width: 500px;
-            height: 60vh;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            overflow-y: auto;
-            /* Przewijanie */
-            padding: 20px;
-            margin-bottom: 20px;
-            display: flex;
-            flex-direction: column;
+        .card {
+            background: #0f1114;
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, .35);
         }
 
-        /* Lista wiadomości */
         #messages {
-            list-style-type: none;
-            padding: 0;
-            margin: 0;
+            min-height: 520px;
+            max-height: 520px;
+            overflow: auto;
+            padding: 16px;
+            background: #0b0d10;
+            border-radius: 16px;
+        }
+
+        .row {
             display: flex;
-            flex-direction: column;
-            gap: 10px;
+            margin: 10px 0;
         }
 
-        /* Styl dymków wiadomości */
-        #messages li {
-            padding: 10px 15px;
-            border-radius: 10px;
-            max-width: 80%;
-            line-height: 1.4;
-            font-size: 15px;
+        .row.user {
+            justify-content: flex-end;
         }
 
-        /* Wiadomość użytkownika (po prawej) */
-        .user {
-            align-self: flex-end;
-            background-color: #007bff;
-            color: white;
-            border-bottom-right-radius: 2px !important;
+        .bubble {
+            max-width: 70%;
+            padding: 10px 12px;
+            border-radius: 14px;
+            background: #2a2f37;
+            white-space: pre-wrap;
         }
 
-        .user strong {
-            color: #e2e8f0;
+        .row.user .bubble {
+            background: #1e6fff;
         }
 
-        /* Wiadomość bota (po lewej) */
-        .bot {
-            align-self: flex-start;
-            background-color: #edf2f7;
-            color: #2d3748;
-            border-bottom-left-radius: 2px !important;
+        .meta {
+            font-size: 12px;
+            opacity: .8;
+            margin-bottom: 4px;
         }
 
-        .bot strong {
-            color: #007bff;
-        }
-
-        /* Wiadomość błędu */
-        .error {
-            align-self: center;
-            background-color: #fff5f5;
-            color: #c53030;
-            border: 1px solid #fc8181;
-            font-size: 13px;
-        }
-
-        /* Formularz na dole */
-        #chat-form {
-            width: 100%;
-            max-width: 500px;
+        .bar {
             display: flex;
             gap: 10px;
-            padding-bottom: 20px;
+            margin-top: 14px;
         }
 
         #chat-input {
             flex: 1;
             padding: 12px;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            font-size: 16px;
-            outline: none;
-        }
-
-        #chat-input:focus {
-            border-color: #007bff;
+            border-radius: 10px;
+            border: 1px solid #3b3f46;
+            background: #12151a;
+            color: #fff;
         }
 
         button {
-            padding: 12px 24px;
-            background-color: #007bff;
-            color: white;
+            padding: 12px 16px;
+            border-radius: 10px;
             border: none;
-            border-radius: 6px;
+            background: #1e6fff;
+            color: #fff;
             cursor: pointer;
-            font-weight: 600;
-            font-size: 16px;
         }
 
-        button:hover {
-            background-color: #0056b3;
+        button:disabled {
+            opacity: .6;
+            cursor: not-allowed;
         }
 
-        /* Przycisk resetowania sesji */
-        .reset-btn {
+        .footer {
             margin-top: 10px;
-            background: none;
-            border: none;
-            color: #718096;
-            font-size: 12px;
-            cursor: pointer;
+            text-align: center;
+        }
+
+        .footer a {
+            color: #9bb7ff;
             text-decoration: underline;
+            cursor: pointer;
         }
     </style>
 </head>
 
 <body>
+    <div class="wrap">
+        <h1 style="text-align:center;">Chatbot OLIG3D</h1>
 
-    <h1>Chatbot OLIG3D</h1>
+        <div class="card">
+            <div id="messages"></div>
 
-    <div id="chat-window">
-        <ul id="messages"></ul>
+            <div class="bar">
+                <input id="chat-input" placeholder="Napisz wiadomość..." autocomplete="off" />
+                <button id="sendBtn" type="button">Wyślij</button>
+                <button id="stlBtn" type="button" title="Wycena STL">STL</button>
+                <input id="stlInput" type="file" accept=".stl" style="display:none" />
+            </div>
+
+            <div class="footer">
+                <a id="resetLink">Zacznij nową rozmowę</a>
+            </div>
+        </div>
     </div>
 
-    <form id="chat-form">
-        <input id="chat-input" type="text" autocomplete="off" placeholder="Napisz wiadomość...">
-        <button type="submit">Wyślij</button>
-    </form>
-
-    <button onclick="resetSession()" class="reset-btn">Zacznij nową rozmowę</button>
-
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-
     <script>
-        const SESSION_KEY = 'olig3d_chat_sessionId';
         const SOURCE = 'web-3d.olig.site';
+        const SESSION_KEY = 'olig3d_session_id';
 
-        const chatBox = document.getElementById('chatBox');
-        const form = document.getElementById('chatForm');
-        const input = document.getElementById('messageInput');
+        const messagesEl = document.getElementById('messages');
+        const inputEl = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('sendBtn');
         const resetLink = document.getElementById('resetLink');
+        const stlBtn = document.getElementById('stlBtn');
+        const stlInput = document.getElementById('stlInput');
 
-        // ===== Helpers =====
-        function uuidv4() {
-            if (crypto?.randomUUID) return crypto.randomUUID();
-            // fallback
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-                const r = (Math.random() * 16) | 0;
-                const v = c === 'x' ? r : (r & 0x3) | 0x8;
-                return v.toString(16);
-            });
+        let busy = false;
+
+        function getSessionId() {
+            return localStorage.getItem(SESSION_KEY);
+        }
+        function setSessionId(id) {
+            if (id) localStorage.setItem(SESSION_KEY, id);
+        }
+        function clearSession() {
+            localStorage.removeItem(SESSION_KEY);
         }
 
-        function ensureSessionId() {
-            let sid = localStorage.getItem(SESSION_KEY);
-            if (!sid) {
-                sid = uuidv4();
-                localStorage.setItem(SESSION_KEY, sid);
-            }
-            return sid;
+        function appendMessage(who, text, kind, id) {
+            const row = document.createElement('div');
+            row.className = 'row ' + (kind || 'bot');
+            if (id) row.dataset.id = id;
+
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+
+            const meta = document.createElement('div');
+            meta.className = 'meta';
+            meta.textContent = who + ':';
+
+            bubble.appendChild(meta);
+            bubble.appendChild(document.createTextNode(text));
+
+            row.appendChild(bubble);
+            messagesEl.appendChild(row);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
         }
 
-        function normalizeApiData(data) {
-            // axios czasem da string mimo Content-Type, albo n8n może zwrócić array
-            if (typeof data === 'string') {
-                try { data = JSON.parse(data); } catch (_) { }
-            }
-            if (Array.isArray(data)) data = data[0];
-            return data;
-        }
-
-        function appendMessage(author, text, role = 'bot', id = null) {
-            const wrap = document.createElement('div');
-            wrap.className = `msg ${role}`;
-            if (id) wrap.dataset.id = id;
-
-            wrap.innerHTML = `
-      <div class="bubble">
-        <div class="author">${author}:</div>
-        <div class="text">${String(text).replace(/\n/g, '<br>')}</div>
-      </div>
-    `;
-            chatBox.appendChild(wrap);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        function updateMessageById(id, author, text, role = 'bot') {
-            const el = chatBox.querySelector(`[data-id="${id}"]`);
-            if (!el) return;
-            el.className = `msg ${role}`;
-            el.querySelector('.author').textContent = `${author}:`;
-            el.querySelector('.text').innerHTML = String(text).replace(/\n/g, '<br>');
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        // ===== API calls =====
-        async function postChat(message) {
-            const sessionId = ensureSessionId();
-
-            const res = await axios.post('/api/chat', {
-                sessionId,
-                message,
-                source: SOURCE,
-            }, { timeout: 60000 });
-
-            const data = normalizeApiData(res.data);
-
-            if (!data || data.success !== true) throw new Error('Chat API: success!=true');
-            if (typeof data.reply !== 'string' || data.reply.length === 0) throw new Error('Chat API: missing reply');
-
-            if (typeof data.sessionId === 'string' && data.sessionId.length > 0) {
-                localStorage.setItem(SESSION_KEY, data.sessionId);
-            }
-
-            return data.reply;
+        function updateMessageById(id, who, text, kind) {
+            const row = [...messagesEl.querySelectorAll('.row')].find(r => r.dataset.id === id);
+            if (!row) return;
+            row.className = 'row ' + (kind || 'bot');
+            const bubble = row.querySelector('.bubble');
+            bubble.innerHTML = '';
+            const meta = document.createElement('div');
+            meta.className = 'meta';
+            meta.textContent = who + ':';
+            bubble.appendChild(meta);
+            bubble.appendChild(document.createTextNode(text));
+            messagesEl.scrollTop = messagesEl.scrollHeight;
         }
 
         async function loadHistory() {
-            const sessionId = localStorage.getItem(SESSION_KEY);
+            const sessionId = getSessionId();
             if (!sessionId) return;
 
-            const res = await axios.get('/api/chat/history', {
+            const r = await axios.get('/api/chat/history', {
                 params: { sessionId, source: SOURCE },
-                timeout: 20000
+                timeout: 20000,
             });
 
-            const data = normalizeApiData(res.data);
-            if (!data || data.success !== true || !Array.isArray(data.messages)) return;
+            const msgs = r.data?.messages || [];
+            if (!Array.isArray(msgs) || msgs.length === 0) return;
 
-            // wyczyść okno
-            chatBox.innerHTML = '';
-
-            for (const m of data.messages) {
-                if (m.direction === 'in') appendMessage('Ty', m.text, 'user');
-                else appendMessage('OLIG3D', m.text, 'bot');
+            messagesEl.innerHTML = '';
+            for (const m of msgs) {
+                const kind = (m.direction === 'out') ? 'user' : 'bot';
+                const who = (m.direction === 'out') ? 'Ty' : 'OLIG3D';
+                appendMessage(who, String(m.text ?? ''), kind);
             }
         }
 
-        // ===== UI logic =====
-        let busy = false;
+        async function postChat(text) {
+            const r = await axios.post('/api/chat', {
+                message: text,
+                sessionId: getSessionId(),  // backend zwróci sessionId jeśli tworzy nową sesję
+                source: SOURCE,
+            }, { timeout: 20000 });
 
-        window.addEventListener('load', async () => {
-            ensureSessionId();
-            await loadHistory();
-        });
+            if (r.data?.sessionId) setSessionId(r.data.sessionId);
+            return String(r.data?.reply ?? '');
+        }
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (busy) return;
-
-            const text = input.value.trim();
-            if (!text) return;
+        async function sendText() {
+            const text = inputEl.value.trim();
+            if (!text || busy) return;
 
             busy = true;
-            input.value = '';
+            sendBtn.disabled = true;
+            inputEl.value = '';
 
             appendMessage('Ty', text, 'user');
 
@@ -289,25 +230,101 @@
 
             try {
                 const reply = await postChat(text);
-                updateMessageById(pendingId, 'OLIG3D', reply, 'bot');
-            } catch (err) {
+                updateMessageById(pendingId, 'OLIG3D', reply || '[brak odpowiedzi]', 'bot');
+                await loadHistory(); // dociągnij historię po zapisie
+            } catch (e) {
                 updateMessageById(pendingId, 'OLIG3D', '[brak odpowiedzi]', 'bot');
             } finally {
                 busy = false;
-                input.focus();
+                sendBtn.disabled = false;
+                inputEl.focus();
+            }
+        }
+
+        async function sendStl(file) {
+            if (!file || busy) return;
+
+            busy = true;
+            sendBtn.disabled = true;
+
+            appendMessage('Ty', `Wgrywam STL: ${file.name}`, 'user');
+
+            const pendingId = 'pending-stl-' + Date.now();
+            appendMessage('OLIG3D', 'liczę wycenę...', 'bot', pendingId);
+
+            try {
+                const fd = new FormData();
+                fd.append('model', file);
+                fd.append('material', 'PLA');
+
+                const r = await axios.post('/api/quote-from-stl', fd, {
+                    headers: { 'Content-Type': 'multipart/form-data' },
+                    timeout: 600000,
+                });
+
+                // u Ciebie serwer zwykle zwraca { success:true, quote: ... }
+                let q = r.data?.quote;
+                if (Array.isArray(q)) q = q[0];
+                if (q && q.quote) q = q.quote;
+
+                if (!q) {
+                    updateMessageById(pendingId, 'OLIG3D', 'Błąd: brak danych wyceny.', 'bot');
+                } else {
+                    const bd = q.breakdown || {};
+                    const mat = q.material || {};
+                    const time = q.time || {};
+                    const lines = [
+                        `JOB: ${q.jobExtId || 'brak'}`,
+                        `Materiał: ${mat.name || 'PLA'} | ${mat.pricePerKg ?? '-'} zł/kg`,
+                        `Czas druku: ${time.printHours ?? '-'} h`,
+                        `Masa: ${q.massGrams ?? '-'} g`,
+                        `Koszt materiału: ${bd.materialCost ?? '-'} zł`,
+                        `Koszt druku: ${bd.printCost ?? '-'} zł`,
+                        `Razem: ${q.total ?? q.totalPrice ?? '-'} zł`,
+                    ].join('\n');
+
+                    updateMessageById(pendingId, 'OLIG3D', lines, 'bot');
+                }
+
+                await loadHistory();
+            } catch (e) {
+                updateMessageById(pendingId, 'OLIG3D', 'Błąd wyceny STL.', 'bot');
+            } finally {
+                busy = false;
+                sendBtn.disabled = false;
+                inputEl.focus();
+            }
+        }
+
+        // EVENTS
+        sendBtn.addEventListener('click', () => sendText());
+        inputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendText();
             }
         });
 
-        if (resetLink) {
-            resetLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                localStorage.removeItem(SESSION_KEY);
-                location.reload();
-            });
-        }
+        resetLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            clearSession();
+            messagesEl.innerHTML = '';
+            inputEl.focus();
+        });
+
+        stlBtn.addEventListener('click', () => stlInput.click());
+        stlInput.addEventListener('change', () => {
+            const f = stlInput.files && stlInput.files[0];
+            stlInput.value = '';
+            if (f) sendStl(f);
+        });
+
+        // INIT
+        (async () => {
+            try { await loadHistory(); } catch { }
+            inputEl.focus();
+        })();
     </script>
-
-
 </body>
 
 </html>

@@ -2,323 +2,784 @@
 <html lang="pl">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Chatbot OLIG3D</title>
     <style>
         :root {
-            --bg1: #070A10;
-            --bg2: #0A1222;
-            --card: rgba(255, 255, 255, 0.06);
-            --card2: rgba(255, 255, 255, 0.08);
-            --border: rgba(255, 255, 255, 0.10);
-            --text: #EAF0FF;
-            --muted: rgba(234, 240, 255, 0.70);
-            --blue: #2E7BFF;
-            --shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+            --bg1: #05070c;
+            --bg2: #07152b;
+            --card: #0b1220cc;
+            --card2: #0b1220f2;
+            --stroke: #1b2a44;
+            --stroke2: #253a63;
+            --text: #e8f0ff;
+            --muted: #a8b7d6;
+            --blue: #2d6bff;
+            --blue2: #1f4cd1;
+            --bubble: #0f1a2f;
+            --bubble2: #0e1526;
+            --shadow: 0 30px 80px rgba(0, 0, 0, .55);
+            --radius: 22px;
+            --radius2: 16px;
+            --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
         }
 
         * {
-            box-sizing: border-box;
+            box-sizing: border-box
+        }
+
+        html,
+        body {
+            height: 100%
         }
 
         body {
             margin: 0;
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+            font-family: var(--sans);
             color: var(--text);
-            min-height: 100vh;
-            background: radial-gradient(900px 500px at 50% 5%, rgba(46, 123, 255, 0.35), transparent 60%),
-                radial-gradient(600px 380px at 15% 85%, rgba(160, 80, 255, 0.25), transparent 60%),
-                radial-gradient(700px 420px at 85% 80%, rgba(0, 220, 255, 0.15), transparent 60%),
-                linear-gradient(180deg, var(--bg1), var(--bg2));
+            background:
+                radial-gradient(1200px 700px at 50% 0%, rgba(45, 107, 255, .35), transparent 60%),
+                radial-gradient(900px 600px at 10% 100%, rgba(119, 66, 255, .22), transparent 55%),
+                linear-gradient(180deg, var(--bg2), var(--bg1));
             display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 48px 16px;
-        }
-
-        .wrap {
-            width: min(1080px, 96vw);
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 16px 24px;
         }
 
         h1 {
-            text-align: center;
-            font-weight: 800;
-            letter-spacing: 0.5px;
-            font-size: 42px;
-            text-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
-            margin-bottom: 22px;
+            margin: 0 0 18px;
+            font-size: 56px;
+            letter-spacing: .5px;
+            text-shadow: 0 10px 50px rgba(0, 0, 0, .6);
         }
 
-        .panel {
-            background: rgba(0, 0, 0, 0.22);
-            border: 1px solid rgba(255, 255, 255, 0.10);
-            border-radius: 28px;
+        .shell {
+            width: min(1200px, 100%);
+            border-radius: calc(var(--radius) + 10px);
+            background: linear-gradient(180deg, rgba(10, 20, 40, .55), rgba(10, 20, 40, .35));
+            border: 1px solid rgba(255, 255, 255, .08);
             box-shadow: var(--shadow);
             padding: 18px;
         }
 
-        .chatbox {
-            height: 520px;
-            border-radius: 22px;
-            background: rgba(0, 0, 0, 0.25);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            padding: 18px;
-            overflow: auto;
+        .frame {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 16px;
+            min-height: 560px;
+        }
+
+        @media (max-width: 980px) {
+            h1 {
+                font-size: 38px
+            }
+
+            .frame {
+                grid-template-columns: 1fr;
+                min-height: unset;
+            }
+        }
+
+        /* Left: Quote panel */
+        .quotePanel {
+            background: var(--card);
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: var(--radius);
+            padding: 16px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .quotePanel::before {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            background: radial-gradient(600px 280px at 50% 0%, rgba(45, 107, 255, .25), transparent 60%);
+            pointer-events: none;
+        }
+
+        .quoteInner {
+            position: relative;
+            z-index: 1;
+        }
+
+        .quoteTitle {
+            font-weight: 800;
+            font-size: 18px;
+            margin: 2px 0 12px;
+            opacity: .95;
+        }
+
+        .total {
+            font-size: 34px;
+            font-weight: 900;
+            text-align: center;
+            margin: 10px 0 14px;
+            letter-spacing: .3px;
+        }
+
+        .subtle {
+            text-align: center;
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: -10px;
+            margin-bottom: 14px;
+        }
+
+        .rows {
+            border-top: 1px solid rgba(255, 255, 255, .08);
+            margin-top: 10px;
+            padding-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
 
         .row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            padding: 10px 10px;
+            border-radius: 14px;
+            background: rgba(0, 0, 0, .18);
+            border: 1px solid rgba(255, 255, 255, .06);
+        }
+
+        .row .k {
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        .row .v {
+            font-weight: 800;
+            font-size: 13px;
+            text-align: right
+        }
+
+        .box {
+            margin-top: 12px;
+            border-radius: 16px;
+            background: rgba(0, 0, 0, .18);
+            border: 1px dashed rgba(255, 255, 255, .18);
+            padding: 12px;
+        }
+
+        .boxTitle {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: .4px;
+            margin-bottom: 8px;
+        }
+
+        .boxRow {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            padding: 6px 0;
+            border-top: 1px solid rgba(255, 255, 255, .06);
+        }
+
+        .boxRow:first-of-type {
+            border-top: 0
+        }
+
+        .boxRow .k {
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        .boxRow .v {
+            font-weight: 900;
+            font-size: 13px;
+            text-align: right
+        }
+
+        /* Right: Chat */
+        .chatCol {
+            background: var(--card);
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: var(--radius);
             display: flex;
-            margin: 10px 0;
-            gap: 12px;
+            flex-direction: column;
+            overflow: hidden;
         }
 
-        .row.user {
-            justify-content: flex-end;
+        .messages {
+            flex: 1;
+            padding: 14px;
+            overflow: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, .25) transparent;
         }
 
-        .row.bot {
-            justify-content: flex-start;
+        .messages::-webkit-scrollbar {
+            width: 10px
+        }
+
+        .messages::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, .18);
+            border-radius: 99px
+        }
+
+        .messages::-webkit-scrollbar-track {
+            background: transparent
         }
 
         .bubble {
-            max-width: min(720px, 80%);
+            max-width: 70%;
             padding: 12px 14px;
-            border-radius: 14px;
-            border: 1px solid rgba(255, 255, 255, 0.10);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+            border-radius: 16px;
+            margin: 10px 0;
+            border: 1px solid rgba(255, 255, 255, .08);
+            background: rgba(0, 0, 0, .20);
+            box-shadow: 0 16px 34px rgba(0, 0, 0, .35);
             white-space: pre-wrap;
-            word-break: break-word;
+            line-height: 1.28;
+            font-size: 14px;
         }
 
-        .user .bubble {
-            background: linear-gradient(180deg, rgba(46, 123, 255, 0.95), rgba(31, 97, 255, 0.95));
-            border-color: rgba(255, 255, 255, 0.12);
-        }
-
-        .bot .bubble {
-            background: rgba(255, 255, 255, 0.06);
-        }
-
-        .badge {
+        .bubble .who {
             display: block;
-            font-size: 12px;
-            opacity: 0.9;
+            font-size: 11px;
+            font-weight: 900;
+            opacity: .9;
             margin-bottom: 6px;
-            font-weight: 700;
-            letter-spacing: 0.2px;
+            color: var(--muted);
+        }
+
+        .bubble.user {
+            margin-left: auto;
+            background: linear-gradient(180deg, rgba(45, 107, 255, .92), rgba(31, 76, 209, .92));
+            border-color: rgba(255, 255, 255, .10);
+        }
+
+        .bubble.user .who {
+            color: rgba(255, 255, 255, .85)
+        }
+
+        .bubble.assistant {
+            margin-right: auto;
+            background: rgba(0, 0, 0, .22);
         }
 
         .composer {
+            border-top: 1px solid rgba(255, 255, 255, .08);
+            padding: 12px;
             display: flex;
-            gap: 8px;
+            gap: 10px;
             align-items: center;
-            margin-top: 14px;
+            background: var(--card2);
         }
 
         .input {
             flex: 1;
             height: 44px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.10);
-            background: rgba(0, 0, 0, 0.28);
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(0, 0, 0, .22);
             color: var(--text);
             padding: 0 14px;
             outline: none;
+            font-size: 14px;
+        }
+
+        .input:focus {
+            border-color: rgba(45, 107, 255, .55);
+            box-shadow: 0 0 0 4px rgba(45, 107, 255, .15);
         }
 
         .btn {
             height: 44px;
-            padding: 0 16px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.10);
-            background: rgba(46, 123, 255, 0.95);
-            color: #fff;
-            font-weight: 800;
-            cursor: pointer;
-        }
-
-        .material {
-            height: 44px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.10);
-            background: rgba(0, 0, 0, 0.28);
-            color: var(--text);
-            padding: 0 10px;
-            min-width: 100px;
-        }
-
-        .newchat {
-            text-align: center;
-            margin-top: 12px;
-        }
-
-        .newchat a {
-            color: rgba(234, 240, 255, 0.75);
-            text-decoration: underline;
-            cursor: pointer;
-        }
-
-        .card {
-            background: rgba(0, 0, 0, 0.20);
-            border: 1px solid rgba(255, 255, 255, 0.10);
             border-radius: 14px;
-            padding: 12px;
-        }
-
-        .card .title {
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(0, 0, 0, .22);
+            color: var(--text);
+            padding: 0 14px;
+            cursor: pointer;
             font-weight: 900;
-            letter-spacing: 0.2px;
-            margin-bottom: 8px;
+            letter-spacing: .2px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
-        .kv {
-            display: flex;
-            justify-content: space-between;
-            padding: 4px 0;
-            border-top: 1px dashed rgba(255, 255, 255, 0.12);
+        .btn:hover {
+            border-color: rgba(255, 255, 255, .18)
         }
 
-        .kv:first-of-type {
-            border-top: none;
+        .btn.primary {
+            background: linear-gradient(180deg, rgba(45, 107, 255, .95), rgba(31, 76, 209, .95));
+            border-color: rgba(255, 255, 255, .12);
         }
 
-        .big {
-            text-align: center;
-            font-size: 30px;
+        .btn.primary:disabled {
+            opacity: .55;
+            cursor: not-allowed;
+        }
+
+        .fileBtn {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .fileBtn input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        select {
+            height: 44px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(0, 0, 0, .22);
+            color: var(--text);
+            padding: 0 12px;
+            outline: none;
             font-weight: 900;
-            margin: 8px 0;
+            cursor: pointer;
         }
 
-        .sub {
+        .footer {
+            padding: 10px 12px 14px;
             text-align: center;
             color: var(--muted);
+            font-size: 13px;
+            background: transparent;
+        }
+
+        .newChat {
+            color: var(--muted);
+            text-decoration: underline;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .newChat:hover {
+            color: var(--text)
+        }
+
+        .fileBadge {
+            margin-top: 6px;
             font-size: 12px;
-            margin-bottom: 10px;
-        }
-
-        .grid2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+            color: var(--muted);
+            display: flex;
             gap: 10px;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 12px 10px;
+            background: transparent;
         }
 
-        @media(max-width:720px) {
-            .grid2 {
-                grid-template-columns: 1fr;
-            }
+        .fileBadge code {
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--text);
+            background: rgba(0, 0, 0, .20);
+            border: 1px solid rgba(255, 255, 255, .08);
+            padding: 4px 8px;
+            border-radius: 12px;
+        }
+
+        .fileBadge .x {
+            color: rgba(255, 255, 255, .75);
+            border: 1px solid rgba(255, 255, 255, .12);
+            background: rgba(0, 0, 0, .18);
+            width: 26px;
+            height: 26px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .fileBadge .x:hover {
+            border-color: rgba(255, 255, 255, .20)
         }
     </style>
 </head>
 
 <body>
-    <div class="wrap">
-        <h1>Chatbot OLIG3D</h1>
-        <div class="panel">
-            <div id="chatbox" class="chatbox"></div>
-            <div class="composer">
-                <input id="messageInput" class="input" placeholder="Napisz wiadomość..." />
-                <button id="sendBtn" class="btn">Wyślij</button>
-                <button id="stlBtn" class="btn">STL</button>
-                <select id="materialSelect" class="material">
-                    <option>PLA</option>
-                    <option>PETG</option>
-                    <option>ASA</option>
-                    <option>ABS</option>
-                    <option>TPU</option>
-                </select>
-                <input id="fileInput" type="file" accept=".stl,.obj" hidden />
-            </div>
-            <div class="newchat"><a id="newChatLink">Zacznij nową rozmowę</a></div>
+    <h1>Chatbot OLIG3D</h1>
+
+    <div class="shell">
+        <div class="frame">
+            <!-- LEFT -->
+            <aside class="quotePanel">
+                <div class="quoteInner">
+                    <div class="quoteTitle">Wycena STL</div>
+                    <div id="quoteTotal" class="total">0.00 PLN</div>
+                    <div id="quoteJob" class="subtle">JOB —</div>
+
+                    <div class="rows">
+                        <div class="row">
+                            <div class="k">Materiał</div>
+                            <div id="qMaterial" class="v">—</div>
+                        </div>
+                        <div class="row">
+                            <div class="k">Waga</div>
+                            <div id="qGrams" class="v">—</div>
+                        </div>
+                        <div class="row">
+                            <div class="k">Czas</div>
+                            <div id="qTime" class="v">—</div>
+                        </div>
+                        <div class="row">
+                            <div class="k">Wymiary</div>
+                            <div id="qDims" class="v">—</div>
+                        </div>
+                        <div class="row">
+                            <div class="k">Objętość</div>
+                            <div id="qVol" class="v">—</div>
+                        </div>
+                    </div>
+
+                    <div class="box">
+                        <div class="boxTitle">SKŁADOWE CENY</div>
+                        <div class="boxRow">
+                            <div class="k">Materiał</div>
+                            <div id="bMat" class="v">—</div>
+                        </div>
+                        <div class="boxRow">
+                            <div class="k">Czas pracy maszyny</div>
+                            <div id="bTime" class="v">—</div>
+                        </div>
+                        <div class="boxRow">
+                            <div class="k">Energia</div>
+                            <div id="bEnergy" class="v">—</div>
+                        </div>
+                        <div class="boxRow">
+                            <div class="k">Marża i obsługa</div>
+                            <div id="bMargin" class="v">—</div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- RIGHT -->
+            <section class="chatCol">
+                <div id="messages" class="messages"></div>
+
+                <div class="composer">
+                    <input id="messageInput" class="input" placeholder="Napisz wiadomość..." autocomplete="off" />
+
+                    <label class="btn fileBtn" title="Wybierz plik STL/OBJ">
+                        STL
+                        <input id="stlInput" type="file" accept=".stl,.obj,model/stl,application/sla" />
+                    </label>
+
+                    <select id="materialSelect" title="Materiał">
+                        <option value="PLA">PLA</option>
+                        <option value="PETG">PETG</option>
+                        <option value="ASA">ASA</option>
+                        <option value="ABS">ABS</option>
+                        <option value="TPU">TPU</option>
+                    </select>
+
+                    <button id="sendBtn" class="btn primary">Wyślij</button>
+                </div>
+
+                <div id="fileBadge" class="fileBadge" style="display:none;">
+                    Wybrany plik: <code id="fileName">—</code>
+                    <span id="clearFile" class="x" title="Usuń plik">✕</span>
+                </div>
+
+                <div class="footer">
+                    <span id="newChat" class="newChat">Zacznij nową rozmowę</span>
+                </div>
+            </section>
         </div>
     </div>
 
     <script>
-        let sessionId = crypto.randomUUID();
-        let pendingFile = null; // plik do wysyłki po kliknięciu "Wyślij"
+        // ====== STATE (bez localStorage, tylko w tej sesji strony) ======
+        let sessionId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now());
+        let selectedFile = null;
 
-        const chat = document.getElementById('chatbox');
-        const input = document.getElementById('messageInput');
-        const sendBtn = document.getElementById('sendBtn');
-        const stlBtn = document.getElementById('stlBtn');
-        const fileInput = document.getElementById('fileInput');
-        const materialSel = document.getElementById('materialSelect');
-        const newChat = document.getElementById('newChatLink');
+        const el = (id) => document.getElementById(id);
+        const messagesEl = el('messages');
 
-        const API_CHAT = '/api/chat';
-        const API_QUOTE = '/api/quote/';
-        const API_STL = '/api/quote-from-stl';
-
-        const addMsg = (role, text, html = false) => {
-            const row = document.createElement('div');
-            row.className = 'row ' + role;
-            const bubble = document.createElement('div');
-            bubble.className = 'bubble';
-            bubble.innerHTML = `<span class="badge">${role === 'user' ? 'Ty:' : 'OLIG3D:'}</span>` + (html ? text : text.replace(/</g, '&lt;'));
-            row.appendChild(bubble); chat.appendChild(row); chat.scrollTop = chat.scrollHeight;
+        // Quote panel fields
+        const q = {
+            total: el('quoteTotal'),
+            job: el('quoteJob'),
+            material: el('qMaterial'),
+            grams: el('qGrams'),
+            time: el('qTime'),
+            dims: el('qDims'),
+            vol: el('qVol'),
+            bMat: el('bMat'),
+            bTime: el('bTime'),
+            bEnergy: el('bEnergy'),
+            bMargin: el('bMargin'),
         };
 
-        const renderQuote = q => {
-            const c = q.currency || 'PLN', b = q.breakdown || {}, m = q.material || {}, t = q.time || {}, meta = q.meta || {}, job = q.jobExtId || q.jobId || '-';
-            return `
-      <div class="card">
-        <div class="title">Wycena STL</div>
-        <div class="sub">${q.filename || job}</div>
-        <div class="big">${(q.total ?? 0).toFixed(2)} ${c}</div>
-        <div class="kv"><div>Materiał</div><div>${m.material || '-'}</div></div>
-        <div class="kv"><div>Waga</div><div>${m.grams ? m.grams.toFixed(2) + ' g' : '-'}</div></div>
-        <div class="kv"><div>Czas</div><div>${t.hhmmss || '-'}</div></div>
-        <div class="kv"><div>Wymiary</div><div>${q.dimensions || '-'}</div></div>
-        <div class="kv"><div>Objętość</div><div>${q.volume ? Number(q.volume).toFixed(2) + ' cm³' : '-'}</div></div>
-        <div class="grid2" style="margin-top:10px;">
-          <div class="card"><div class="title" style="font-size:14px;">Składowe</div>
-            <div class="kv"><div>Czas pracy</div><div>${b.timeCost?.toFixed(2)} ${c}</div></div>
-            <div class="kv"><div>Materiał</div><div>${b.materialCost?.toFixed(2)} ${c}</div></div>
-            <div class="kv"><div>Energia</div><div>${b.energyCost?.toFixed(2)} ${c}</div></div>
-            <div class="kv"><div>Marża</div><div>${b.margin?.toFixed(2)} ${c}</div></div>
-          </div>
-        </div>
-      </div>`;
-        };
+        // Controls
+        const inputEl = el('messageInput');
+        const stlInputEl = el('stlInput');
+        const matEl = el('materialSelect');
+        const sendBtn = el('sendBtn');
 
-        async function sendMessage() {
-            const msg = input.value.trim();
-            if (!msg && !pendingFile) return;
-            addMsg('user', msg || ('[plik: ' + pendingFile.name + ']'));
-            input.value = '';
-            if (pendingFile) {
-                const fd = new FormData();
-                fd.append('model', pendingFile, pendingFile.name);
-                fd.append('material', materialSel.value);
-                const r = await fetch(API_STL, { method: 'POST', body: fd });
-                const d = await r.json();
-                const q = d?.quote;
-                if (d?.success && q) addMsg('bot', renderQuote(q), true);
-                else addMsg('bot', 'Błąd wyceny STL.');
-                pendingFile = null;
+        const fileBadge = el('fileBadge');
+        const fileNameEl = el('fileName');
+        const clearFileEl = el('clearFile');
+        const newChatEl = el('newChat');
+
+        // ====== HELPERS ======
+        function money(n, currency = 'PLN') {
+            const v = Number(n);
+            if (!Number.isFinite(v)) return '—';
+            return v.toFixed(2) + ' ' + currency;
+        }
+
+        function textOrDash(v) {
+            if (v === null || v === undefined || v === '') return '—';
+            return String(v);
+        }
+
+        function timeLabel(obj) {
+            // Prefer hhmmss, else minutes
+            if (obj && obj.hhmmss) return obj.hhmmss;
+            const m = obj && Number(obj.minutes);
+            if (Number.isFinite(m)) return m + ' min';
+            return '—';
+        }
+
+        function normalizeResponse(data) {
+            // n8n czasem zwraca tablicę: [ { ... } ]
+            if (Array.isArray(data)) return data[0] ?? {};
+            return data ?? {};
+        }
+
+        function extractQuote(normalized) {
+            // /upload -> { success:true, quote:{...} }
+            // /quote  -> { success:true, quoteId..., jobExtId..., breakdown... } albo [ { ... } ]
+            if (normalized && typeof normalized === 'object') {
+                if (normalized.quote && typeof normalized.quote === 'object') return normalized.quote;
+                // jeśli wygląda jak quote po polach:
+                if (normalized.jobExtId || normalized.total || normalized.breakdown) return normalized;
+            }
+            return null;
+        }
+
+        function addBubble(who, text) {
+            const wrap = document.createElement('div');
+            wrap.className = 'bubble ' + (who === 'user' ? 'user' : 'assistant');
+
+            const label = document.createElement('span');
+            label.className = 'who';
+            label.textContent = (who === 'user') ? 'Ty:' : 'OLIG3D:';
+
+            const body = document.createElement('div');
+            body.textContent = text;
+
+            wrap.appendChild(label);
+            wrap.appendChild(body);
+            messagesEl.appendChild(wrap);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        function setQuotePanel(quote) {
+            if (!quote) {
+                q.total.textContent = '0.00 PLN';
+                q.job.textContent = 'JOB —';
+                q.material.textContent = '—';
+                q.grams.textContent = '—';
+                q.time.textContent = '—';
+                q.dims.textContent = '—';
+                q.vol.textContent = '—';
+                q.bMat.textContent = '—';
+                q.bTime.textContent = '—';
+                q.bEnergy.textContent = '—';
+                q.bMargin.textContent = '—';
                 return;
             }
-            // normalne wiadomości
-            const res = await fetch(API_CHAT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg, sessionId }) });
-            const data = await res.json().catch(() => null);
-            const reply = data?.reply || data?.output?.reply || data?.result?.reply || 'Echo: ' + msg;
-            addMsg('bot', reply);
+
+            const currency = quote.currency || 'PLN';
+
+            q.total.textContent = money(quote.total, currency);
+            q.job.textContent = quote.jobExtId ? quote.jobExtId : (quote.jobExtId === '' ? 'JOB —' : 'JOB —');
+
+            const mat = quote.material?.material ?? quote.material ?? null;
+            q.material.textContent = textOrDash(mat);
+
+            const grams = quote.material?.grams;
+            q.grams.textContent = Number.isFinite(Number(grams)) ? (Number(grams).toFixed(2) + ' g') : '—';
+
+            q.time.textContent = timeLabel(quote.time);
+
+            q.dims.textContent = textOrDash(quote.dimensions ?? quote.dims ?? null);
+
+            const vol = quote.volume;
+            q.vol.textContent = Number.isFinite(Number(vol)) ? (Number(vol).toFixed(2) + ' cm³') : '—';
+
+            // breakdown
+            const b = quote.breakdown || {};
+            q.bMat.textContent = money(b.materialCost, currency);
+            q.bTime.textContent = money(b.timeCost, currency);
+            q.bEnergy.textContent = money(b.energyCost, currency);
+            q.bMargin.textContent = money(b.margin, currency);
         }
 
-        async function handleJob(msg) {
-            const job = msg.trim().toUpperCase();
-            const r = await fetch(API_QUOTE + job);
-            const d = await r.json();
-            const q = d?.quote || d;
-            if (q) addMsg('bot', renderQuote(q), true);
-            else addMsg('bot', 'Nie znaleziono ' + job);
+        function showSelectedFile(file) {
+            if (!file) {
+                fileBadge.style.display = 'none';
+                fileNameEl.textContent = '—';
+                return;
+            }
+            fileBadge.style.display = 'flex';
+            fileNameEl.textContent = file.name;
         }
 
-        sendBtn.onclick = sendMessage;
-        input.onkeydown = e => { if (e.key === 'Enter') sendMessage(); };
-        stlBtn.onclick = () => fileInput.click();
-        fileInput.onchange = () => { pendingFile = fileInput.files[0]; if (pendingFile) addMsg('user', 'Wybrano plik: ' + pendingFile.name); };
-        newChat.onclick = () => { chat.innerHTML = ''; sessionId = crypto.randomUUID(); pendingFile = null; };
+        function clearSelectedFile() {
+            selectedFile = null;
+            stlInputEl.value = '';
+            showSelectedFile(null);
+        }
+
+        // ====== API CALLS ======
+        async function sendTextMessage(text) {
+            const payload = { message: text, sessionId };
+            const r = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            const raw = await r.json().catch(() => ({}));
+            const data = normalizeResponse(raw);
+
+            // 1) quote?
+            const quote = extractQuote(data);
+            if (quote) {
+                setQuotePanel(quote);
+                addBubble('assistant', `Wycena / dane JOB: ${quote.jobExtId || '—'}\nSuma: ${money(quote.total, quote.currency || 'PLN')}`);
+                return;
+            }
+
+            // 2) reply string?
+            const reply =
+                data.reply ??
+                data.output?.reply ??
+                data.data?.reply ??
+                (typeof raw === 'string' ? raw : null);
+
+            if (reply && String(reply).trim()) {
+                addBubble('assistant', String(reply));
+                return;
+            }
+
+            // 3) fallback (żeby nie było [brak odpowiedzi])
+            if (data && data.success === true) {
+                addBubble('assistant', 'OK.');
+                return;
+            }
+
+            addBubble('assistant', 'Brak treści odpowiedzi. Oto surowy JSON:\n' + JSON.stringify(raw, null, 2));
+        }
+
+        async function sendStlQuote(file, material) {
+            const fd = new FormData();
+            // na wszelki wypadek podajemy oba klucze - zależnie jak masz w server.js
+            fd.append('model', file, file.name);
+            fd.append('file', file, file.name);
+            fd.append('material', material);
+            fd.append('sessionId', sessionId);
+
+            const r = await fetch('/api/quote-from-stl', { method: 'POST', body: fd });
+            const raw = await r.json().catch(() => ({}));
+            const data = normalizeResponse(raw);
+
+            const quote = extractQuote(data);
+            if (quote) {
+                setQuotePanel(quote);
+                addBubble('assistant',
+                    `Wycena STL gotowa.\n` +
+                    `JOB: ${quote.jobExtId || '—'}\n` +
+                    `Suma: ${money(quote.total, quote.currency || 'PLN')}`
+                );
+                return;
+            }
+
+            if (data && data.success === true) {
+                addBubble('assistant', 'Plik przetworzony (brak danych wyceny w odpowiedzi).');
+                return;
+            }
+
+            addBubble('assistant', 'Błąd wyceny STL. Surowy JSON:\n' + JSON.stringify(raw, null, 2));
+        }
+
+        // ====== UI LOGIC ======
+        async function onSend() {
+            if (sendBtn.disabled) return;
+
+            const text = (inputEl.value || '').trim();
+            const material = matEl.value || 'PLA';
+
+            // Priorytet: jeśli wybrano plik -> wysyłamy plik
+            if (selectedFile) {
+                addBubble('user', `Wysyłam STL: ${selectedFile.name}\nMateriał: ${material}`);
+                inputEl.value = '';
+                sendBtn.disabled = true;
+                try {
+                    await sendStlQuote(selectedFile, material);
+                } finally {
+                    sendBtn.disabled = false;
+                    clearSelectedFile();
+                }
+                return;
+            }
+
+            // Normalna wiadomość
+            if (!text) return;
+            addBubble('user', text);
+            inputEl.value = '';
+
+            sendBtn.disabled = true;
+            try {
+                await sendTextMessage(text);
+            } finally {
+                sendBtn.disabled = false;
+            }
+        }
+
+        // ====== EVENTS ======
+        sendBtn.addEventListener('click', onSend);
+        inputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') onSend();
+        });
+
+        stlInputEl.addEventListener('change', () => {
+            const f = stlInputEl.files && stlInputEl.files[0];
+            if (!f) return;
+            selectedFile = f;
+            showSelectedFile(f);
+            // NIE wysyłamy automatycznie. Wysyłka dopiero po kliknięciu "Wyślij".
+        });
+
+        clearFileEl.addEventListener('click', clearSelectedFile);
+
+        newChatEl.addEventListener('click', () => {
+            // reset sesji + UI
+            sessionId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now());
+            messagesEl.innerHTML = '';
+            inputEl.value = '';
+            clearSelectedFile();
+            setQuotePanel(null);
+            addBubble('assistant', 'Nowa rozmowa rozpoczęta.');
+        });
+
+        // Init
+        setQuotePanel(null);
+        addBubble('assistant', 'Cześć! Napisz wiadomość albo wybierz STL i kliknij „Wyślij”.');
     </script>
 </body>
 

@@ -128,203 +128,112 @@
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
-        const SOURCE = 'web-3d.olig.site';
-        const SESSION_KEY = 'olig3d_session_id';
+        const SESSION_KEY = 'olig3d_chat_session';
 
-        const messagesEl = document.getElementById('messages');
-        const inputEl = document.getElementById('chat-input');
-        const sendBtn = document.getElementById('sendBtn');
-        const resetLink = document.getElementById('resetLink');
-        const stlBtn = document.getElementById('stlBtn');
-        const stlInput = document.getElementById('stlInput');
-
-        let busy = false;
-
-        function getSessionId() {
-            return localStorage.getItem(SESSION_KEY);
-        }
-        function setSessionId(id) {
-            if (id) localStorage.setItem(SESSION_KEY, id);
-        }
-        function clearSession() {
-            localStorage.removeItem(SESSION_KEY);
+        let sessionId = localStorage.getItem(SESSION_KEY);
+        if (!sessionId) {
+            sessionId = (window.crypto && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : (Date.now() + '-' + Math.random().toString(16).slice(2));
+            localStorage.setItem(SESSION_KEY, sessionId);
         }
 
-        function appendMessage(who, text, kind, id) {
-            const row = document.createElement('div');
-            row.className = 'row ' + (kind || 'bot');
-            if (id) row.dataset.id = id;
+        const form = document.getElementById('chat-form');
+        const input = document.getElementById('chat-input');
+        const list = document.getElementById('messages');
+        const chatWindow = document.getElementById('chat-window');
+        const resetLink = document.getElementById('reset-chat');
 
-            const bubble = document.createElement('div');
-            bubble.className = 'bubble';
-
-            const meta = document.createElement('div');
-            meta.className = 'meta';
-            meta.textContent = who + ':';
-
-            bubble.appendChild(meta);
-            bubble.appendChild(document.createTextNode(text));
-
-            row.appendChild(bubble);
-            messagesEl.appendChild(row);
-            messagesEl.scrollTop = messagesEl.scrollHeight;
+        function scrollDown() {
+            chatWindow.scrollTop = chatWindow.scrollHeight;
         }
 
-        function updateMessageById(id, who, text, kind) {
-            const row = [...messagesEl.querySelectorAll('.row')].find(r => r.dataset.id === id);
-            if (!row) return;
-            row.className = 'row ' + (kind || 'bot');
-            const bubble = row.querySelector('.bubble');
-            bubble.innerHTML = '';
-            const meta = document.createElement('div');
-            meta.className = 'meta';
-            meta.textContent = who + ':';
-            bubble.appendChild(meta);
-            bubble.appendChild(document.createTextNode(text));
-            messagesEl.scrollTop = messagesEl.scrollHeight;
+        function appendMessage(who, text, cls, id = null) {
+            const li = document.createElement('li');
+            li.className = `msg ${cls}`;
+            if (id) li.dataset.id = id;
+            li.innerHTML = `<strong>${who}:</strong><br>${String(text).replace(/\n/g, '<br>')}`;
+            list.appendChild(li);
+            scrollDown();
+            return li;
         }
 
-        async function loadHistory() {
-            const sessionId = getSessionId();
-            if (!sessionId) return;
+        function updateMessageById(id, who, text, cls) {
+            const el = list.querySelector(`li[data-id="${id}"]`);
+            if (!el) return appendMessage(who, text, cls, id);
+            el.className = `msg ${cls}`;
+            el.innerHTML = `<strong>${who}:</strong><br>${String(text).replace(/\n/g, '<br>')}`;
+            scrollDown();
+            return el;
+        }
 
-            const r = await axios.get('/api/chat/history', {
-                params: { sessionId, source: SOURCE },
-                timeout: 20000,
-            });
+        async function postChat(message) {
+            const controller = new AbortController();
+            const t = setTimeout(() => controller.abort(), 25000); // 25s
 
-            const msgs = r.data?.messages || [];
-            if (!Array.isArray(msgs) || msgs.length === 0) return;
+            try {
+                const r = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message, sessionId }),
+                    signal: controller.signal,
+                });
 
-            messagesEl.innerHTML = '';
-            for (const m of msgs) {
-                const kind = (m.direction === 'out') ? 'user' : 'bot';
-                const who = (m.direction === 'out') ? 'Ty' : 'OLIG3D';
-                appendMessage(who, String(m.text ?? ''), kind);
+                // jeśli serwer zwróci coś nie-JSON, json() rzuci wyjątek
+                const data = await r.json();
+
+                if (!data || data.success !== true || !data.reply) {
+                    throw new Error('bad_response');
+                }
+
+                if (data.sessionId && data.sessionId !== sessionId) {
+                    sessionId = data.sessionId;
+                    localStorage.setItem(SESSION_KEY, sessionId);
+                }
+
+                return data.reply;
+            } finally {
+                clearTimeout(t);
             }
         }
 
-        async function postChat(text) {
-            const r = await axios.post('/api/chat', {
-                message: text,
-                sessionId: getSessionId(),  // backend zwróci sessionId jeśli tworzy nową sesję
-                source: SOURCE,
-            }, { timeout: 20000 });
+        let busy = false;
 
-            if (r.data?.sessionId) setSessionId(r.data.sessionId);
-            return String(r.data?.reply ?? '');
-        }
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (busy) return;
 
-        async function sendText() {
-            const text = inputEl.value.trim();
-            if (!text || busy) return;
+            const text = input.value.trim();
+            if (!text) return;
 
             busy = true;
-            sendBtn.disabled = true;
-            inputEl.value = '';
+            input.value = '';
 
             appendMessage('Ty', text, 'user');
 
             const pendingId = 'pending-' + Date.now();
-            appendMessage('OLIG3D', 'myślę...', 'bot', pendingId);
+            appendMessage('OLIG3D', 'myślę…', 'bot', pendingId);
 
             try {
                 const reply = await postChat(text);
-                updateMessageById(pendingId, 'OLIG3D', reply || '[brak odpowiedzi]', 'bot');
-                await loadHistory(); // dociągnij historię po zapisie
-            } catch (e) {
+                updateMessageById(pendingId, 'OLIG3D', reply, 'bot');
+            } catch (err) {
                 updateMessageById(pendingId, 'OLIG3D', '[brak odpowiedzi]', 'bot');
             } finally {
                 busy = false;
-                sendBtn.disabled = false;
-                inputEl.focus();
+                input.focus();
             }
-        }
+        });
 
-        async function sendStl(file) {
-            if (!file || busy) return;
-
-            busy = true;
-            sendBtn.disabled = true;
-
-            appendMessage('Ty', `Wgrywam STL: ${file.name}`, 'user');
-
-            const pendingId = 'pending-stl-' + Date.now();
-            appendMessage('OLIG3D', 'liczę wycenę...', 'bot', pendingId);
-
-            try {
-                const fd = new FormData();
-                fd.append('model', file);
-                fd.append('material', 'PLA');
-
-                const r = await axios.post('/api/quote-from-stl', fd, {
-                    headers: { 'Content-Type': 'multipart/form-data' },
-                    timeout: 600000,
-                });
-
-                // u Ciebie serwer zwykle zwraca { success:true, quote: ... }
-                let q = r.data?.quote;
-                if (Array.isArray(q)) q = q[0];
-                if (q && q.quote) q = q.quote;
-
-                if (!q) {
-                    updateMessageById(pendingId, 'OLIG3D', 'Błąd: brak danych wyceny.', 'bot');
-                } else {
-                    const bd = q.breakdown || {};
-                    const mat = q.material || {};
-                    const time = q.time || {};
-                    const lines = [
-                        `JOB: ${q.jobExtId || 'brak'}`,
-                        `Materiał: ${mat.name || 'PLA'} | ${mat.pricePerKg ?? '-'} zł/kg`,
-                        `Czas druku: ${time.printHours ?? '-'} h`,
-                        `Masa: ${q.massGrams ?? '-'} g`,
-                        `Koszt materiału: ${bd.materialCost ?? '-'} zł`,
-                        `Koszt druku: ${bd.printCost ?? '-'} zł`,
-                        `Razem: ${q.total ?? q.totalPrice ?? '-'} zł`,
-                    ].join('\n');
-
-                    updateMessageById(pendingId, 'OLIG3D', lines, 'bot');
-                }
-
-                await loadHistory();
-            } catch (e) {
-                updateMessageById(pendingId, 'OLIG3D', 'Błąd wyceny STL.', 'bot');
-            } finally {
-                busy = false;
-                sendBtn.disabled = false;
-                inputEl.focus();
-            }
-        }
-
-        // EVENTS
-        sendBtn.addEventListener('click', () => sendText());
-        inputEl.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
+        if (resetLink) {
+            resetLink.addEventListener('click', (e) => {
                 e.preventDefault();
-                sendText();
-            }
-        });
-
-        resetLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            clearSession();
-            messagesEl.innerHTML = '';
-            inputEl.focus();
-        });
-
-        stlBtn.addEventListener('click', () => stlInput.click());
-        stlInput.addEventListener('change', () => {
-            const f = stlInput.files && stlInput.files[0];
-            stlInput.value = '';
-            if (f) sendStl(f);
-        });
-
-        // INIT
-        (async () => {
-            try { await loadHistory(); } catch { }
-            inputEl.focus();
-        })();
+                localStorage.removeItem(SESSION_KEY);
+                location.reload();
+            });
+        }
     </script>
+
 </body>
 
 </html>

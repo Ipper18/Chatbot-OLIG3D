@@ -184,6 +184,7 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
+
 app.get('/api/quote/:extId', async (req, res) => {
     try {
         const r = await axios.post(
@@ -401,33 +402,3 @@ app.post('/api/quote-from-stl', upload.single('model'), async (req, res) => {
     }
 });
 
-app.get('/api/chat/history', async (req, res) => {
-    try {
-        res.set('Cache-Control', 'no-store');
-
-        const sessionId = String(req.query.sessionId || '').trim();
-        const source = String(req.query.source || 'web-3d.olig.site').trim();
-
-        if (!sessionId) {
-            return res.status(400).json({ success: false, error: 'Missing sessionId' });
-        }
-
-        const url = process.env.N8N_CHAT_HISTORY_WEBHOOK_URL;
-        if (!url) {
-            return res.status(500).json({ success: false, error: 'Missing N8N_CHAT_HISTORY_WEBHOOK_URL' });
-        }
-
-        const r = await axios.get(url, {
-            params: { sessionId, source },
-            timeout: 20000,
-        });
-
-        return res.json(r.data);
-    } catch (err) {
-        return res.status(500).json({
-            success: false,
-            error: 'Chat history proxy error',
-            details: err?.message || String(err),
-        });
-    }
-});

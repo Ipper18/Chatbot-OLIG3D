@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <title>Chatbot OLIG3D</title>
 
-    <!-- Jeśli masz globalne style, zostaw -->
     <link rel="stylesheet" href="/styles.css" />
 
     <style>
@@ -43,7 +42,6 @@
                 radial-gradient(900px 600px at 10% 110%, rgba(180, 60, 255, .18), transparent 55%),
                 linear-gradient(180deg, var(--bg1), var(--bg2));
             overflow: hidden;
-            /* klucz: strona nie rośnie, tylko scroll w chacie */
         }
 
         .page {
@@ -67,7 +65,6 @@
         .main {
             flex: 1;
             min-height: 0;
-            /* wymagane żeby scroll działał poprawnie w flex */
             display: grid;
             grid-template-columns: 320px 1fr;
             gap: 18px;
@@ -91,6 +88,7 @@
             flex-direction: column;
             gap: 14px;
             min-height: 0;
+            overflow-y: auto;
         }
 
         .summary h3 {
@@ -210,7 +208,7 @@
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        /* SCROLLABLE MESSAGES */
+        /* MESSAGES */
         #messages {
             flex: 1;
             min-height: 0;
@@ -413,6 +411,7 @@
 
             .summary {
                 order: 2;
+                max-height: 500px;
             }
 
             .chat {
@@ -428,7 +427,6 @@
         <h1 class="title">Chatbot OLIG3D</h1>
 
         <div class="main">
-            <!-- LEFT: SUMMARY -->
             <aside class="card summary" id="summaryPanel">
                 <h3>Wycena STL</h3>
 
@@ -482,7 +480,6 @@
                 </div>
             </aside>
 
-            <!-- RIGHT: CHAT -->
             <section class="card chat">
                 <div class="chatTop">
                     <div class="chatHint">OLIG3D: Napisz wiadomość lub wybierz STL i kliknij „Wyślij”.</div>
@@ -528,7 +525,7 @@
         // ====== CONFIG ======
         const API_CHAT = "/api/chat";
         const API_QUOTE_FROM_STL = "/api/quote-from-stl";
-        const API_GET_QUOTE = "/api/quote"; // fallback: /api/quote/:extId
+        const API_GET_QUOTE = "/api/quote";
 
         // ====== STATE ======
         let sessionId = localStorage.getItem("olig3d_sessionId") || "";
@@ -593,7 +590,7 @@
 
         function fmt2(n) {
             const x = Number(n);
-            if (!isFinite(x)) return null;
+            if (!Number.isFinite(x)) return null;
             return x.toFixed(2);
         }
 
@@ -608,83 +605,18 @@
             return m ? m[0].toUpperCase() : null;
         }
 
-        function normalizeQuotePayload(payload) {
-            // payload może być:
-            // - { success, reply, quote: {...}, geometry: {...} }
-            // - { quote: {...}, geometry: {...} }
-            // - bezpośrednio {...quote...}
-            const root = payload && payload.quote ? payload.quote : payload;
-
-            const geom = payload && payload.geometry ? payload.geometry : null;
-
-            const jobExtId = root?.jobExtId || root?.ext_id || root?.extId || null;
-
-            const total = root?.total ?? root?.quote_total ?? null;
-            const currency = root?.currency || "PLN";
-
-            const materialType =
-                root?.material?.type ||
-                root?.material?.material ||
-                root?.material?.name ||
-                (typeof root?.material === "string" ? root.material : null) ||
-                null;
-
-            const grams =
-                root?.material?.grams ??
-                root?.estimated_weight_g ??
-                root?.estimated_weight ??
-                null;
-
-            const minutes =
-                root?.time?.minutes ??
-                root?.estimated_time_min ??
-                null;
-
-            const hhmmss =
-                root?.time?.hhmmss ??
-                (minutes != null ? minutesToHHMMSS(minutes) : null);
-
-            const dims =
-                geom?.dimensions_mm ||
-                root?.dimensions ||
-                null;
-
-            const volume =
-                geom?.volume_cm3 ||
-                root?.volume_cm3 ||
-                root?.volume ||
-                null;
-
-            const breakdown = root?.breakdown || {
-                materialCost: root?.material_cost ?? null,
-                timeCost: root?.time_cost ?? null,
-                energyCost: root?.energy_cost ?? null,
-                margin: root?.margin ?? null
-            };
-
-            return {
-                jobExtId, total, currency,
-                materialType, grams,
-                minutes, hhmmss,
-                dims, volume,
-                breakdown
-            };
-        }
-
         function minutesToHHMMSS(minutes) {
             const m = Math.max(0, Math.floor(Number(minutes) || 0));
             const h = Math.floor(m / 60);
             const mm = String(m % 60).padStart(2, "0");
-            return String(h).padStart(2, "0") + ":" + mm + ":00";
+            const ss = String(Math.floor((Number(minutes) * 60) % 60)).padStart(2, "0");
+            return `${String(h).padStart(2, "0")}:${mm}:${ss}`;
         }
 
         function fmtDims(d) {
             if (!d) return "—";
-            // może być obiekt: {x:..., y:..., z:...} albo {width,height,depth} albo tablica
-            if (Array.isArray(d) && d.length >= 3) {
-                return `${Number(d[0]).toFixed(1)}×${Number(d[1]).toFixed(1)}×${Number(d[2]).toFixed(1)} mm`;
-            }
-            if (typeof d === "object") {
+            // Obsługa obiektu geometry z Pythona {x, y, z}
+            if (typeof d === "object" && !Array.isArray(d)) {
                 const x = d.x ?? d.width ?? d.w;
                 const y = d.y ?? d.depth ?? d.d;
                 const z = d.z ?? d.height ?? d.h;
@@ -692,48 +624,105 @@
                     return `${Number(x).toFixed(1)}×${Number(y).toFixed(1)}×${Number(z).toFixed(1)} mm`;
                 }
             }
+            // Obsługa tablicy
+            if (Array.isArray(d) && d.length >= 3) {
+                return `${Number(d[0]).toFixed(1)}×${Number(d[1]).toFixed(1)}×${Number(d[2]).toFixed(1)} mm`;
+            }
+            // Obsługa stringa
             return safeText(d);
+        }
+
+        /**
+         * Normalizuje dane z różnych endpointów (chat, stl, get quote).
+         * Obsługuje różne struktury zagnieżdżenia JSON z n8n.
+         */
+        function normalizeQuotePayload(data) {
+            let root = {};
+            let geometry = null;
+
+            // 1. CHAT (/api/chat) -> server zwraca { raw: { quote: {...} } } lub n8n zwraca quote wewnątrz
+            if (data.raw && data.raw.quote) {
+                root = data.raw.quote;
+            }
+            // 2. STL UPLOAD (/api/quote-from-stl) -> server zwraca { quote: { success:true, quote: {...} }, geometry: {...} }
+            else if (data.quote && data.quote.quote) {
+                root = data.quote.quote;
+                geometry = data.geometry || null;
+            }
+            // 3. GET QUOTE (/api/quote/:id) -> server zwraca płaską strukturę lub { json: ... }
+            else if (data.jobExtId || data.job_id) {
+                root = data;
+            }
+            // Fallback
+            else if (data.quote) {
+                root = data.quote;
+            }
+
+            // Wydobycie 'breakdown' - n8n zwraca różne nazwy kluczy w różnych workflowach
+            const bd = root.breakdown || {};
+
+            // Mapowanie:
+            // Chat: materialCost, timeCost, energyCost
+            // STL: costMat, costTime, costEnergy
+            const breakdown = {
+                mat: bd.materialCost ?? bd.costMat ?? 0,
+                time: bd.timeCost ?? bd.costTime ?? 0,
+                nrg: bd.energyCost ?? bd.costEnergy ?? 0,
+                margin: bd.margin ?? 0
+            };
+
+            // Wymiary - priorytet dla geometrii z Pythona, potem string z bazy
+            const dims = geometry?.dimensions_mm || root.dimensions || root.dimensions_str || null;
+            const volume = geometry?.volume_cm3 || root.volume || root.volume_cm3 || null;
+
+            // Czas
+            const timeMin = root.time?.minutes ?? root.estimated_time_min ?? root.time_min ?? 0;
+            const timeStr = root.time?.hhmmss ?? root.time_hhmmss ?? minutesToHHMMSS(timeMin);
+
+            // Materiał
+            const matType = root.material?.material ?? root.material?.type ?? root.material ?? "—";
+            const weight = root.material?.grams ?? root.estimated_weight_g ?? root.weight_g ?? 0;
+
+            return {
+                total: root.total ?? 0,
+                currency: root.currency || "PLN",
+                jobExtId: root.jobExtId || root.ext_id || root.new_job_ext_id || "—",
+
+                materialType: matType,
+                weightG: weight,
+
+                timeString: timeStr,
+                dims: dims,
+                volume: volume,
+
+                breakdown: breakdown
+            };
         }
 
         function setSummaryFromAny(payload) {
             const q = normalizeQuotePayload(payload);
 
-            // total
-            const t = fmt2(q.total);
-            sumTotal.textContent = t !== null ? t : "0.00";
-            sumCurrency.textContent = safeText(q.currency, "PLN");
+            // Główne KPI
+            sumTotal.textContent = fmt2(q.total) ?? "0.00";
+            sumCurrency.textContent = q.currency;
 
-            // job
-            sumJob.textContent = safeText(q.jobExtId, "—").replace(/^JOB-?/i, "").includes("-")
-                ? safeText(q.jobExtId, "—")
-                : safeText(q.jobExtId, "—");
+            // Job ID
+            const jobTxt = safeText(q.jobExtId);
+            sumJob.textContent = jobTxt.includes("JOB") ? jobTxt : "JOB-" + jobTxt;
 
-            // material / weight / time / dims / volume
-            sumMaterial.textContent = safeText(q.materialType, "—");
-            sumWeight.textContent = (q.grams != null && isFinite(Number(q.grams)))
-                ? `${Number(q.grams).toFixed(2)} g`
-                : "—";
-
-            const timeStr = q.hhmmss ? `${safeText(q.minutes, "—")} min (${q.hhmmss})` : "—";
-            sumTime.textContent = timeStr;
-
+            // Parametry fizyczne
+            sumMaterial.textContent = safeText(q.materialType);
+            sumWeight.textContent = (q.weightG > 0) ? `${fmt2(q.weightG)} g` : "—";
+            sumTime.textContent = q.timeString !== "00:00:00" ? q.timeString : "—";
             sumDims.textContent = fmtDims(q.dims);
+            sumVolume.textContent = (q.volume > 0) ? `${fmt2(q.volume)} cm³` : "—";
 
-            sumVolume.textContent = (q.volume != null && isFinite(Number(q.volume)))
-                ? `${Number(q.volume).toFixed(2)} cm³`
-                : "—";
-
-            // breakdown
-            const cur = safeText(q.currency, "PLN");
-            const mc = fmt2(q.breakdown?.materialCost);
-            const tc = fmt2(q.breakdown?.timeCost);
-            const ec = fmt2(q.breakdown?.energyCost);
-            const mg = fmt2(q.breakdown?.margin);
-
-            sumMatCost.textContent = `${mc !== null ? mc : "0.00"} ${cur}`;
-            sumTimeCost.textContent = `${tc !== null ? tc : "0.00"} ${cur}`;
-            sumEnergyCost.textContent = `${ec !== null ? ec : "0.00"} ${cur}`;
-            sumMargin.textContent = `${mg !== null ? mg : "0.00"} ${cur}`;
+            // Rozbicie kosztów
+            const cur = q.currency;
+            sumMatCost.textContent = `${fmt2(q.breakdown.mat)} ${cur}`;
+            sumTimeCost.textContent = `${fmt2(q.breakdown.time)} ${cur}`;
+            sumEnergyCost.textContent = `${fmt2(q.breakdown.nrg)} ${cur}`;
+            sumMargin.textContent = `${fmt2(q.breakdown.margin)} ${cur}`;
         }
 
         function resetSummary() {
@@ -761,9 +750,8 @@
         async function safeReadJson(res) {
             const ct = (res.headers.get("content-type") || "").toLowerCase();
             if (ct.includes("application/json")) return await res.json();
-            // jak server zwróci HTML (np. MulterError), NIE wpychamy tego do chatu
             const txt = await res.text();
-            return { success: false, error: "NON_JSON", status: res.status, preview: txt.slice(0, 180) };
+            return { success: false, error: "NON_JSON", preview: txt.slice(0, 180) };
         }
 
         function clearFile() {
@@ -791,75 +779,78 @@
 
                 if (data.sessionId) setSession(data.sessionId);
 
-                // Jeśli przyszła wycena/quote -> aktualizujemy panel po lewej
-                if (data.quote) {
-                    setSummaryFromAny(data); // bierze data.quote
+                // Sprawdzamy, czy w odpowiedzi czatu jest wycena (zagnieżdżona w raw)
+                const hasQuote = data.raw && data.raw.quote;
+
+                if (hasQuote) {
+                    setSummaryFromAny(data);
                 } else {
-                    // fallback: jeśli user wpisał JOB-xxxx, a workflow nie zwrócił quote
+                    // Fallback: Jeśli user wpisał JOB-xxxx, a n8n nie zwróciło quote wprost,
+                    // spróbujmy pobrać wycenę ręcznie z endpointu GET /api/quote
                     const job = jobFromText(userText);
                     if (job) {
                         try {
-                            const r2 = await fetch(`${API_GET_QUOTE}/${encodeURIComponent(job.toUpperCase())}`);
+                            const r2 = await fetch(`${API_GET_QUOTE}/${encodeURIComponent(job)}`);
                             const d2 = await safeReadJson(r2);
-                            if (d2 && d2.quote) setSummaryFromAny(d2);
-                        } catch (e) { }
+                            // API GET zwraca dane wprost lub w wrapperze
+                            if (d2 && (d2.success || d2.jobExtId)) {
+                                setSummaryFromAny(d2);
+                            }
+                        } catch (e) {
+                            console.warn("Nie udało się pobrać wyceny w tle:", e);
+                        }
                     }
                 }
 
-                // Odpowiedź bota: preferujemy krótką, a jak jej brak to ustawiamy stałą
                 let reply = (data.reply && String(data.reply).trim()) ? String(data.reply).trim() : "";
                 if (!reply) {
-                    reply = data.quote
+                    reply = hasQuote
                         ? "Wyniki wyświetliłem po lewej w panelu „Wycena STL”."
                         : "OK.";
                 }
                 appendMessage("bot", reply);
 
             } catch (err) {
+                console.error(err);
                 appendMessage("bot", "Błąd połączenia z serwerem.");
             } finally {
                 setBusy(false);
                 messageInput.value = "";
-                // WAŻNE: nie trzymamy pliku “na przyszłość”
                 clearFile();
             }
         }
 
         async function sendStlQuote(file, material) {
-            // komunikat usera
             appendMessage("user", `Wysyłam STL: ${file.name}\nMateriał: ${material}`);
 
             setBusy(true);
             try {
                 const fd = new FormData();
-
-                // KLUCZ: server.js ma upload.single('model'), więc musi być 'model'
                 fd.append("model", file);
-
-                // server.js oczekuje też 'material'
                 fd.append("material", material);
 
                 const res = await fetch(API_QUOTE_FROM_STL, { method: "POST", body: fd });
                 const data = await safeReadJson(res);
 
                 if (!data || data.success === false) {
-                    appendMessage("bot", "Błąd wyceny STL po stronie serwera.");
+                    const errInfo = data.details || data.error || "Nieznany błąd";
+                    appendMessage("bot", `Błąd wyceny STL: ${errInfo}`);
                     return;
                 }
 
-                // Aktualizacja panelu po lewej (quote + geometry)
-                if (data.quote || data.geometry) {
-                    setSummaryFromAny(data); // normalizer ogarnia data.quote + data.geometry
-                }
+                // Aktualizacja panelu po lewej
+                // Endpoint zwraca { quote: { ...n8n_response... }, geometry: {...} }
+                setSummaryFromAny(data);
 
                 appendMessage("bot", "Wyniki wyświetliłem po lewej w panelu „Wycena STL”.");
 
             } catch (e) {
+                console.error(e);
                 appendMessage("bot", "Błąd połączenia z serwerem przy wycenie STL.");
             } finally {
                 setBusy(false);
-                clearFile();            // usuwa “przyczepianie” pliku
-                messageInput.value = ""; // czyścimy input
+                clearFile();
+                messageInput.value = "";
             }
         }
 
@@ -875,19 +866,16 @@
 
             const f = fileInput.files && fileInput.files[0];
 
-            // Jeśli wybrano plik -> robimy wycenę STL (i TYLKO to)
             if (f) {
                 const mat = materialSelect.value || "PLA";
                 await sendStlQuote(f, mat);
                 return;
             }
 
-            // Inaczej -> standardowy chat / JOB-xxxx
             await sendChatMessage(messageInput.value);
         });
 
         newChatBtn.addEventListener("click", () => {
-            // reset sesji + UI
             setSession("");
             messagesEl.innerHTML = "";
             resetSummary();

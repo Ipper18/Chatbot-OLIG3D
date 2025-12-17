@@ -615,6 +615,9 @@
 
         function fmtDims(d) {
             if (!d) return "—";
+            // Jeśli to już jest string (np. z Twojego n8n: "60 x 31 x 48 mm")
+            if (typeof d === "string") return d;
+
             // Obsługa obiektu geometry z Pythona {x, y, z}
             if (typeof d === "object" && !Array.isArray(d)) {
                 const x = d.x ?? d.width ?? d.w;
@@ -628,42 +631,36 @@
             if (Array.isArray(d) && d.length >= 3) {
                 return `${Number(d[0]).toFixed(1)}×${Number(d[1]).toFixed(1)}×${Number(d[2]).toFixed(1)} mm`;
             }
-            // Obsługa stringa
             return safeText(d);
         }
 
         /**
-         * Normalizuje dane z różnych endpointów (chat, stl, get quote).
-         * Obsługuje różne struktury zagnieżdżenia JSON z n8n.
+         * Główna funkcja naprawcza - "spłaszcza" strukturę JSON,
+         * niezależnie czy przychodzi z n8n jako tablica, obiekt zagnieżdżony czy płaski.
          */
-        function normalizeQuotePayload(data) {
-            let root = {};
-            let geometry = null;
+        function normalizeQuotePayload(payload) {
+            // 1. Wyciągamy dane z wrappera server.js (zwykle w kluczu 'quote')
+            // Ale czasem server zwraca { quote: [array] } lub { quote: { object } }
+            let root = payload.quote || payload;
 
-            // 1. CHAT (/api/chat) -> server zwraca { raw: { quote: {...} } } lub n8n zwraca quote wewnątrz
-            if (data.raw && data.raw.quote) {
-                root = data.raw.quote;
-            }
-            // 2. STL UPLOAD (/api/quote-from-stl) -> server zwraca { quote: { success:true, quote: {...} }, geometry: {...} }
-            else if (data.quote && data.quote.quote) {
-                root = data.quote.quote;
-                geometry = data.geometry || null;
-            }
-            // 3. GET QUOTE (/api/quote/:id) -> server zwraca płaską strukturę lub { json: ... }
-            else if (data.jobExtId || data.job_id) {
-                root = data;
-            }
-            // Fallback
-            else if (data.quote) {
-                root = data.quote;
+            // 2. Jeśli n8n zwróciło tablicę (częste przy "All Incoming Items"), bierzemy pierwszy element
+            if (Array.isArray(root)) {
+                root = root[0] || {};
             }
 
-            // Wydobycie 'breakdown' - n8n zwraca różne nazwy kluczy w różnych workflowach
+            // 3. Jeśli w środku jest wrapper "quote" (jak na Twoim screenshocie: { success: true, quote: {...} })
+            if (root && root.quote) {
+                root = root.quote;
+            }
+
+            // --- TERAZ 'root' to właściwy obiekt z danymi (total, jobExtId, breakdown...) ---
+
+            // Dodatkowe sprawdzenie geometrii z Pythona (jest poza obiektem quote w odpowiedzi server.js)
+            const geom = payload.geometry || {};
+
+            // Breakdown - mapowanie kluczy z Twojego screenshota (camelCase)
             const bd = root.breakdown || {};
 
-            // Mapowanie:
-            // Chat: materialCost, timeCost, energyCost
-            // STL: costMat, costTime, costEnergy
             const breakdown = {
                 mat: bd.materialCost ?? bd.costMat ?? 0,
                 time: bd.timeCost ?? bd.costTime ?? 0,
@@ -671,12 +668,13 @@
                 margin: bd.margin ?? 0
             };
 
-            // Wymiary - priorytet dla geometrii z Pythona, potem string z bazy
-            const dims = geometry?.dimensions_mm || root.dimensions || root.dimensions_str || null;
-            const volume = geometry?.volume_cm3 || root.volume || root.volume_cm3 || null;
+            // Wymiary - priorytet: string z n8n ("dimensions"), potem geometria z Pythona
+            const dims = root.dimensions || root.dimensions_str || geom.dimensions_mm || null;
+            const volume = root.volume || root.volume_cm3 || geom.volume_cm3 || null;
 
             // Czas
             const timeMin = root.time?.minutes ?? root.estimated_time_min ?? root.time_min ?? 0;
+            // n8n zwraca hhmmss w formacie "00:40:15", bierzemy to bezpośrednio
             const timeStr = root.time?.hhmmss ?? root.time_hhmmss ?? minutesToHHMMSS(timeMin);
 
             // Materiał
@@ -686,6 +684,7 @@
             return {
                 total: root.total ?? 0,
                 currency: root.currency || "PLN",
+                // Twoje n8n zwraca 'jobExtId', baza zwraca 'ext_id'
                 jobExtId: root.jobExtId || root.ext_id || root.new_job_ext_id || "—",
 
                 materialType: matType,
@@ -700,7 +699,9 @@
         }
 
         function setSummaryFromAny(payload) {
+            console.log("Raw payload:", payload); // Debug w konsoli przeglądarki
             const q = normalizeQuotePayload(payload);
+            console.log("Normalized:", q);       // Debug w konsoli przeglądarki
 
             // Główne KPI
             sumTotal.textContent = fmt2(q.total) ?? "0.00";
@@ -713,7 +714,7 @@
             // Parametry fizyczne
             sumMaterial.textContent = safeText(q.materialType);
             sumWeight.textContent = (q.weightG > 0) ? `${fmt2(q.weightG)} g` : "—";
-            sumTime.textContent = q.timeString !== "00:00:00" ? q.timeString : "—";
+            sumTime.textContent = (q.timeString && q.timeString !== "00:00:00") ? q.timeString : "—";
             sumDims.textContent = fmtDims(q.dims);
             sumVolume.textContent = (q.volume > 0) ? `${fmt2(q.volume)} cm³` : "—";
 
@@ -779,21 +780,21 @@
 
                 if (data.sessionId) setSession(data.sessionId);
 
-                // Sprawdzamy, czy w odpowiedzi czatu jest wycena (zagnieżdżona w raw)
-                const hasQuote = data.raw && data.raw.quote;
+                // Sprawdzamy czy w odpowiedzi czatu jest wycena (zagnieżdżona w raw)
+                // Czasem jest to data.quote (bezpośrednio) lub data.raw.quote (z n8n)
+                const hasQuote = (data.raw && data.raw.quote) || data.quote;
 
                 if (hasQuote) {
-                    setSummaryFromAny(data);
+                    // Przekazujemy CAŁY obiekt data, normalizeQuotePayload sobie znajdzie właściwy klucz
+                    setSummaryFromAny(data.raw || data);
                 } else {
-                    // Fallback: Jeśli user wpisał JOB-xxxx, a n8n nie zwróciło quote wprost,
-                    // spróbujmy pobrać wycenę ręcznie z endpointu GET /api/quote
+                    // Fallback: Jeśli user wpisał JOB-xxxx, a n8n nie zwróciło quote wprost
                     const job = jobFromText(userText);
                     if (job) {
                         try {
                             const r2 = await fetch(`${API_GET_QUOTE}/${encodeURIComponent(job)}`);
                             const d2 = await safeReadJson(r2);
-                            // API GET zwraca dane wprost lub w wrapperze
-                            if (d2 && (d2.success || d2.jobExtId)) {
+                            if (d2 && (d2.success || d2.jobExtId || d2.ext_id)) {
                                 setSummaryFromAny(d2);
                             }
                         } catch (e) {
@@ -839,7 +840,6 @@
                 }
 
                 // Aktualizacja panelu po lewej
-                // Endpoint zwraca { quote: { ...n8n_response... }, geometry: {...} }
                 setSummaryFromAny(data);
 
                 appendMessage("bot", "Wyniki wyświetliłem po lewej w panelu „Wycena STL”.");
